@@ -1,6 +1,7 @@
 import { pool } from "../db/database";
 
 export interface Member {
+  id: number;
   telegram_id: string;
   username: string | null;
   first_name: string | null;

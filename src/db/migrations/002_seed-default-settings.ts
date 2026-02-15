@@ -1,4 +1,6 @@
-import type { MigrationBuilder } from 'node-pg-migrate' with { "resolution-mode": "import" };
+import type { MigrationBuilder } from "node-pg-migrate" with {
+  "resolution-mode": "import",
+};
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.sql(`
@@ -17,5 +19,7 @@ You're currently muted until you introduce yourself in our intro group. Check th
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
-  pgm.sql(`DELETE FROM settings WHERE key IN ('welcome_message', 'intro_guide')`);
+  pgm.sql(
+    `DELETE FROM settings WHERE key IN ('welcome_message', 'intro_guide')`,
+  );
 }

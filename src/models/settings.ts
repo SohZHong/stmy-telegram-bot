@@ -1,6 +1,7 @@
 import { pool } from "../db/database.js";
 
 export interface Setting {
+  id: number;
   key: string;
   value: string;
   updated_by: number | null;
