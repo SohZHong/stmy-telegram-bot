@@ -1,6 +1,6 @@
 import { Telegraf } from 'telegraf';
-import { config } from '../config';
-import { getMember, markIntroCompleted } from '../db/database';
+import { config } from '../config.js';
+import { getMember, markIntroCompleted } from '../db/database.js';
 
 const UNMUTED_PERMISSIONS = {
   can_send_messages: true,
@@ -18,7 +18,11 @@ const UNMUTED_PERMISSIONS = {
 
 export function setup(bot: Telegraf): void {
   bot.on('message', async (ctx, next) => {
-    if (ctx.chat.id !== config.introChannelId) return next();
+    const isIntroTopic =
+      ctx.chat.id === config.mainGroupId &&
+      'message_thread_id' in ctx.message &&
+      ctx.message.message_thread_id === config.introTopicId;
+    if (!isIntroTopic) return next();
     if (!('text' in ctx.message)) return next();
 
     const userId = ctx.from.id;
