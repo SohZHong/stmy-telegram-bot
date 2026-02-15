@@ -5,14 +5,14 @@ Telegram onboarding bot for Superteam MY. Automatically mutes new members until 
 ## How it works
 
 1. A user joins the main group
-2. The bot deletes the service message and posts a welcome message with a "Start Introduction" button in the **Welcome topic**
+2. The bot deletes the service message, **mutes** the user (restricts all send permissions), and posts a welcome message with a "Start Introduction" button in the **Welcome topic**
 3. The user clicks the button, which opens a DM with the bot via deep link (`t.me/{bot}?start=intro`)
 4. The bot sends the welcome message + intro guide and asks the user to type their introduction
 5. The user types their intro in the DM
-6. The bot posts the formatted introduction in the **Introduction topic** on their behalf and marks them as introduced
+6. The bot posts the formatted introduction in the **Introduction topic** on their behalf, marks them as introduced, and **unmutes** them (restores full send permissions)
 7. The user can now post freely in all group topics
 
-Non-introduced users have their messages deleted in all topics except Welcome and Introduction. They receive a rate-limited DM reminder pointing them to the Welcome topic button.
+Permissions are managed centrally in `src/permissions.ts` — mute/unmute use Telegram's `restrictChatMember` API. The messageGuard acts as a secondary layer, deleting messages from non-introduced users in all topics except Welcome and Introduction, and sending a rate-limited DM reminder.
 
 Admins can customize the welcome message and intro guide via bot commands.
 
@@ -22,6 +22,7 @@ Admins can customize the welcome message and intro guide via bot commands.
 src/
   config.ts              # Environment variable loading & validation
   errors.ts              # Startup error handling with known-error matching
+  permissions.ts         # Centralized mute/unmute via Telegram restrictChatMember
   index.ts               # Bot entrypoint — registers handlers, runs migrations, starts bot
   db/
     database.ts          # PostgreSQL connection pool and close()
