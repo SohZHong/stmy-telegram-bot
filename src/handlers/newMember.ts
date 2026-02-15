@@ -1,6 +1,7 @@
 import { Markup, Telegraf } from "telegraf";
 import { config } from "../config";
 import { getMember, upsertMember } from "../models/member";
+import { muteUser } from "../permissions";
 
 export function setup(bot: Telegraf): void {
   bot.on("new_chat_members", async (ctx) => {
@@ -29,6 +30,13 @@ export function setup(bot: Telegraf): void {
           member.first_name,
           ctx.chat.id,
         );
+
+        // Mute the new member until they complete their intro
+        try {
+          await muteUser(ctx.telegram, member.id);
+        } catch {
+          // May lack permission to restrict members
+        }
 
         const name = member.first_name || member.username || "there";
         const deepLink = `https://t.me/${ctx.botInfo.username}?start=intro`;

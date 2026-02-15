@@ -3,6 +3,7 @@ import { message } from "telegraf/filters";
 import { config } from "../config";
 import { getMember, markIntroCompleted } from "../models/member";
 import { getSetting } from "../models/settings";
+import { unmuteUser } from "../permissions";
 
 interface IntroState {
   state: "AWAITING_INTRO";
@@ -19,7 +20,7 @@ export function setup(bot: Telegraf): void {
   bot.start(async (ctx, next) => {
     if (ctx.chat.type !== "private") return next();
 
-    const payload = ctx.startPayload;
+    const payload = ctx.payload;
     if (payload !== "intro") return next();
 
     const userId = ctx.from.id;
@@ -92,6 +93,8 @@ export function setup(bot: Telegraf): void {
       });
 
       await markIntroCompleted(userId);
+      await unmuteUser(ctx.telegram, userId);
+
       introState.delete(userId);
 
       await ctx.reply(
