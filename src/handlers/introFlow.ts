@@ -3,7 +3,7 @@ import { message } from "telegraf/filters";
 import { config } from "../config";
 import { getMember, markIntroCompleted } from "../models/member";
 import { getSetting } from "../models/settings";
-import { unmuteUser } from "../permissions";
+import { postToClosedTopic, unmuteUser } from "../permissions";
 
 interface IntroState {
   state: "AWAITING_INTRO";
@@ -12,7 +12,10 @@ interface IntroState {
 const introState = new Map<number, IntroState>();
 
 function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 export function setup(bot: Telegraf): void {
@@ -81,20 +84,22 @@ export function setup(bot: Telegraf): void {
     }
 
     try {
-      const name = escapeHtml(ctx.from.first_name || ctx.from.username || "there");
+      const name = escapeHtml(
+        ctx.from.first_name || ctx.from.username || "there",
+      );
       const username = ctx.from.username ? ` @${ctx.from.username}` : "";
 
-      const introText =
-        `<b>Introduction from <a href="tg://user?id=${userId}">${name}</a></b>${username}\n\n${escapeHtml(text)}`;
+      const introText = `<b>Introduction from</b>${username}\n\n${escapeHtml(text)}`;
 
-      await ctx.telegram.sendMessage(config.mainGroupId, introText, {
-        message_thread_id: config.introTopicId,
-        parse_mode: "HTML",
-      });
+      await postToClosedTopic(ctx.telegram, config.introTopicId, () =>
+        ctx.telegram.sendMessage(config.mainGroupId, introText, {
+          message_thread_id: config.introTopicId,
+          parse_mode: "HTML",
+        }),
+      );
 
       await markIntroCompleted(userId);
       await unmuteUser(ctx.telegram, userId);
-
       introState.delete(userId);
 
       await ctx.reply(
