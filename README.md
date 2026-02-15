@@ -5,9 +5,14 @@ Telegram onboarding bot for Superteam MY. Automatically mutes new members until 
 ## How it works
 
 1. A user joins the main group
-2. The bot mutes them and sends a welcome message with an intro guide
-3. The user posts an introduction in the intro forum topic
-4. The bot detects the message, unmutes them in the main group, and confirms
+2. The bot deletes the service message and posts a welcome message with a "Start Introduction" button in the **Welcome topic**
+3. The user clicks the button, which opens a DM with the bot via deep link (`t.me/{bot}?start=intro`)
+4. The bot sends the welcome message + intro guide and asks the user to type their introduction
+5. The user types their intro in the DM
+6. The bot posts the formatted introduction in the **Introduction topic** on their behalf and marks them as introduced
+7. The user can now post freely in all group topics
+
+Non-introduced users have their messages deleted in all topics except Welcome and Introduction. They receive a rate-limited DM reminder pointing them to the Welcome topic button.
 
 Admins can customize the welcome message and intro guide via bot commands.
 
@@ -16,6 +21,7 @@ Admins can customize the welcome message and intro guide via bot commands.
 ```
 src/
   config.ts              # Environment variable loading & validation
+  errors.ts              # Startup error handling with known-error matching
   index.ts               # Bot entrypoint — registers handlers, runs migrations, starts bot
   db/
     database.ts          # PostgreSQL connection pool and close()
@@ -25,8 +31,9 @@ src/
     member.ts            # Member interface and DB queries (upsert, get, mark intro)
     settings.ts          # Setting interface and DB queries (get, set)
   handlers/
-    newMember.ts         # Listens for new_chat_members — mutes & sends welcome
-    introCheck.ts        # Listens for messages in intro topic — unmutes on intro
+    newMember.ts         # Listens for new_chat_members — posts welcome button in Welcome topic
+    introFlow.ts         # DM-based intro collection (/start intro deep link → collects text → posts to Introduction topic)
+    messageGuard.ts      # Deletes messages from non-introduced users, sends DM reminder
     admin.ts             # Admin commands (/setwelcome, /setintroguide, etc.)
 ```
 
@@ -62,6 +69,7 @@ Fill in your `.env`:
 | `BOT_TOKEN` | Telegram bot token from [@BotFather](https://t.me/BotFather) |
 | `MAIN_GROUP_ID` | Telegram chat ID of the main supergroup |
 | `INTRO_TOPIC_ID` | Forum topic thread ID for introductions (not a chat ID — just the thread number) |
+| `WELCOME_TOPIC_ID` | Forum topic thread ID for welcome messages (where the "Start Introduction" button is posted) |
 | `DATABASE_URL` | PostgreSQL connection string |
 
 ### 3. Start the database
@@ -107,6 +115,26 @@ export async function down(pgm: MigrationBuilder): Promise<void> {
   pgm.dropColumns('members', ['bio']);
 }
 ```
+
+## Error handling
+
+Startup errors are handled in `src/errors.ts` via a `knownErrors` array. Each entry matches a specific error and provides a human-readable message. To add a new known error:
+
+```typescript
+// src/errors.ts — add to the knownErrors array
+{
+  match: (err) => /* your condition */,
+  message: "What went wrong and how to fix it.",
+},
+```
+
+Unrecognized errors fall through and log the full error object.
+
+### Common errors
+
+| Error | Cause | Fix |
+|---|---|---|
+| `409 Conflict: terminated by other getUpdates request` | Two bot instances running simultaneously (e.g. Docker + local dev) | Stop one instance: `docker compose stop bot` or kill the local process |
 
 ## Adding a new feature
 
