@@ -1,6 +1,6 @@
-import { Telegraf } from 'telegraf';
-import { config } from '../config.js';
-import { getMember, markIntroCompleted } from '../db/database.js';
+import { Telegraf } from "telegraf";
+import { config } from "../config";
+import { getMember, markIntroCompleted } from "../models/member";
 
 const UNMUTED_PERMISSIONS = {
   can_send_messages: true,
@@ -17,13 +17,13 @@ const UNMUTED_PERMISSIONS = {
 } as const;
 
 export function setup(bot: Telegraf): void {
-  bot.on('message', async (ctx, next) => {
+  bot.on("message", async (ctx, next) => {
     const isIntroTopic =
       ctx.chat.id === config.mainGroupId &&
-      'message_thread_id' in ctx.message &&
+      "message_thread_id" in ctx.message &&
       ctx.message.message_thread_id === config.introTopicId;
     if (!isIntroTopic) return next();
-    if (!('text' in ctx.message)) return next();
+    if (!("text" in ctx.message)) return next();
 
     const userId = ctx.from.id;
     if (ctx.from.is_bot) return next();
@@ -39,12 +39,15 @@ export function setup(bot: Telegraf): void {
         permissions: UNMUTED_PERMISSIONS,
       });
 
-      const name = ctx.from.first_name || ctx.from.username || 'there';
+      const name = ctx.from.first_name || ctx.from.username || "there";
       await ctx.reply(
-        `Thanks for introducing yourself, ${name}! You're now unmuted in the main group. 🎉`
+        `Thanks for introducing yourself, ${name}! You're now unmuted in the main group. 🎉`,
       );
     } catch (err) {
-      console.error(`Error checking intro for user ${userId}:`, (err as Error).message);
+      console.error(
+        `Error checking intro for user ${userId}:`,
+        (err as Error).message,
+      );
     }
 
     return next();

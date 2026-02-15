@@ -1,9 +1,10 @@
-import { Telegraf } from 'telegraf';
-import { config } from './config';
-import { close, initDb } from './db/database';
-import { setup as setupAdmin } from './handlers/admin';
-import { setup as setupIntroCheck } from './handlers/introCheck';
-import { setup as setupNewMember } from './handlers/newMember';
+import { Telegraf } from "telegraf";
+import { config } from "./config";
+import { close } from "./db/database";
+import { runMigrations } from "./db/migrate";
+import { setup as setupAdmin } from "./handlers/admin";
+import { setup as setupIntroCheck } from "./handlers/introCheck";
+import { setup as setupNewMember } from "./handlers/newMember";
 
 const bot = new Telegraf(config.botToken);
 
@@ -13,11 +14,11 @@ setupNewMember(bot);
 setupIntroCheck(bot);
 
 async function start(): Promise<void> {
-  await initDb();
-  console.log('Database initialized');
+  await runMigrations(config.databaseUrl);
+  console.log("Migrations complete");
 
   await bot.launch();
-  console.log('Bot started');
+  console.log("Bot started");
 }
 
 function shutdown(signal: string): void {
@@ -26,10 +27,10 @@ function shutdown(signal: string): void {
   close().then(() => process.exit(0));
 }
 
-process.once('SIGINT', () => shutdown('SIGINT'));
-process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once("SIGINT", () => shutdown("SIGINT"));
+process.once("SIGTERM", () => shutdown("SIGTERM"));
 
 start().catch((err) => {
-  console.error('Failed to start bot:', err);
+  console.error("Failed to start bot:", err);
   process.exit(1);
 });

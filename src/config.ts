@@ -1,6 +1,11 @@
-import 'dotenv/config';
+import "dotenv/config";
 
-const required = ['BOT_TOKEN', 'MAIN_GROUP_ID', 'INTRO_TOPIC_ID', 'DATABASE_URL'] as const;
+const required = [
+  "BOT_TOKEN",
+  "MAIN_GROUP_ID",
+  "INTRO_TOPIC_ID",
+  "DATABASE_URL",
+] as const;
 
 for (const key of required) {
   if (!process.env[key]) {
