@@ -5,14 +5,14 @@ Telegram onboarding bot for Superteam MY. Automatically mutes new members until 
 ## How it works
 
 1. A user joins the main group
-2. The bot deletes the service message, **mutes** the user (restricts all send permissions), and posts a welcome message with a "Start Introduction" button in the **Welcome topic**
+2. The bot deletes the service message, **mutes** the user, and posts a welcome message with a "Start Introduction" button in the **Welcome topic**
 3. The user clicks the button, which opens a DM with the bot via deep link (`t.me/{bot}?start=intro`)
 4. The bot sends the welcome message + intro guide and asks the user to type their introduction
 5. The user types their intro in the DM
-6. The bot posts the formatted introduction in the **Introduction topic** on their behalf, marks them as introduced, and **unmutes** them (restores full send permissions)
+6. The bot posts the formatted introduction in the **Introduction topic** on their behalf, marks them as introduced, and **unmutes** them
 7. The user can now post freely in all group topics
 
-Permissions are managed centrally in `src/permissions.ts` — mute/unmute use Telegram's `restrictChatMember` API. The messageGuard acts as a secondary layer, deleting messages from non-introduced users in all topics except Welcome and Introduction, and sending a rate-limited DM reminder.
+Mute/unmute is handled by `src/permissions.ts` via Telegram's `restrictChatMember` API. The messageGuard acts as a secondary layer, deleting messages from non-introduced users and sending a rate-limited DM reminder. To allow non-introduced users to chat in specific topics (e.g. Welcome, Introduction), configure those topics as open in Telegram's group admin settings.
 
 Admins can customize the welcome message and intro guide via bot commands.
 

@@ -36,3 +36,16 @@ export async function unmuteUser(
     permissions: FULL_PERMISSIONS,
   });
 }
+
+export async function postToClosedTopic<T>(
+  telegram: Telegram,
+  topicId: number,
+  sendFn: () => Promise<T>,
+): Promise<T> {
+  await telegram.reopenForumTopic(config.mainGroupId, topicId);
+  try {
+    return await sendFn();
+  } finally {
+    await telegram.closeForumTopic(config.mainGroupId, topicId);
+  }
+}
