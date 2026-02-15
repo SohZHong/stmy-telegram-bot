@@ -1,18 +1,7 @@
 import pg from 'pg';
-import { config } from '../config';
+import { config } from '../config.js';
 
 const pool = new pg.Pool({ connectionString: config.databaseUrl });
-
-const DEFAULT_WELCOME = `Welcome to Superteam MY, {name}! 🎉
-
-You're currently muted until you introduce yourself in our intro group. Check the pinned intro guide below!`;
-
-const DEFAULT_INTRO_GUIDE = `Please introduce yourself with:
-
-1. **Who you are** – Name, background, what you do
-2. **Where you're based** – City/country
-3. **A fun fact** – Something interesting about you
-4. **How you want to contribute** – What excites you about Superteam MY`;
 
 export interface Member {
   telegram_id: string;
@@ -22,38 +11,6 @@ export interface Member {
   intro_completed: boolean;
   joined_at: Date;
   intro_completed_at: Date | null;
-}
-
-export async function initDb(): Promise<void> {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS members (
-      telegram_id BIGINT PRIMARY KEY,
-      username TEXT,
-      first_name TEXT,
-      group_id BIGINT NOT NULL,
-      intro_completed BOOLEAN NOT NULL DEFAULT FALSE,
-      joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      intro_completed_at TIMESTAMPTZ
-    )
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updated_by BIGINT,
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await pool.query(
-    `INSERT INTO settings (key, value) VALUES ('welcome_message', $1) ON CONFLICT DO NOTHING`,
-    [DEFAULT_WELCOME]
-  );
-  await pool.query(
-    `INSERT INTO settings (key, value) VALUES ('intro_guide', $1) ON CONFLICT DO NOTHING`,
-    [DEFAULT_INTRO_GUIDE]
-  );
 }
 
 export async function upsertMember(
