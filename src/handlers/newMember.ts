@@ -1,7 +1,6 @@
-import { Telegraf } from "telegraf";
+import { Markup, Telegraf } from "telegraf";
 import { config } from "../config";
 import { getMember, upsertMember } from "../models/member";
-import { getSetting } from "../models/settings";
 
 export function setup(bot: Telegraf): void {
   bot.on("new_chat_members", async (ctx) => {
@@ -31,36 +30,20 @@ export function setup(bot: Telegraf): void {
           ctx.chat.id,
         );
 
-        const welcomeMsg = await getSetting("welcome_message");
-        const introGuide = await getSetting("intro_guide");
         const name = member.first_name || member.username || "there";
-        const text =
-          (welcomeMsg ?? "").replace(/\{name\}/g, name) +
-          "\n\n" +
-          (introGuide ?? "");
+        const deepLink = `https://t.me/${ctx.botInfo.username}?start=intro`;
 
-        // Try to DM the user
-        try {
-          await ctx.telegram.sendMessage(member.id, text, {
+        await ctx.telegram.sendMessage(
+          config.mainGroupId,
+          `Welcome, [${name}](tg://user?id=${member.id})! Click below to introduce yourself.`,
+          {
+            message_thread_id: config.welcomeTopicId,
             parse_mode: "Markdown",
-          });
-        } catch {
-          // DM failed (user hasn't started the bot) — fall back to a brief group message, then auto-delete
-          const fallback = await ctx.reply(
-            `Welcome, [${name}](tg://user?id=${member.id})! I sent you a DM with instructions, but it looks like you haven't started a chat with me yet. Please open a DM with me to get started!`,
-            { parse_mode: "Markdown" },
-          );
-          setTimeout(async () => {
-            try {
-              await ctx.telegram.deleteMessage(
-                fallback.chat.id,
-                fallback.message_id,
-              );
-            } catch {
-              // Message may already be deleted
-            }
-          }, 15_000);
-        }
+            ...Markup.inlineKeyboard([
+              Markup.button.url("Start Introduction", deepLink),
+            ]),
+          },
+        );
       } catch (err) {
         console.error(
           `Error handling new member ${member.id}:`,

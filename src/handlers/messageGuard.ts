@@ -10,10 +10,11 @@ export function setup(bot: Telegraf): void {
     // Only act in the main group
     if (ctx.chat.id !== config.mainGroupId) return next();
 
-    // Skip messages in the intro topic
+    // Skip messages in the intro topic and welcome topic
     if (
       "message_thread_id" in ctx.message &&
-      ctx.message.message_thread_id === config.introTopicId
+      (ctx.message.message_thread_id === config.introTopicId ||
+        ctx.message.message_thread_id === config.welcomeTopicId)
     ) {
       return next();
     }
@@ -40,7 +41,7 @@ export function setup(bot: Telegraf): void {
         try {
           await ctx.telegram.sendMessage(
             userId,
-            "Your message was removed because you haven't introduced yourself yet. Please post an introduction in the intro topic first, then you'll be able to chat freely!",
+            "Your message was removed because you haven't introduced yourself yet. Please go to the Welcome topic and click the \"Start Introduction\" button to introduce yourself!",
           );
         } catch {
           // User hasn't started the bot then nothing we can do
