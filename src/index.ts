@@ -4,6 +4,7 @@ import { close } from "./db/database";
 import { runMigrations } from "./db/migrate";
 import { setup as setupAdmin } from "./handlers/admin";
 import { setup as setupIntroCheck } from "./handlers/introCheck";
+import { setup as setupMessageGuard } from "./handlers/messageGuard";
 import { setup as setupNewMember } from "./handlers/newMember";
 
 const bot = new Telegraf(config.botToken);
@@ -11,6 +12,7 @@ const bot = new Telegraf(config.botToken);
 // Register command handlers first (so commands in intro group don't trigger intro check)
 setupAdmin(bot);
 setupNewMember(bot);
+setupMessageGuard(bot);
 setupIntroCheck(bot);
 
 async function start(): Promise<void> {

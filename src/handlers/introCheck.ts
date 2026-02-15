@@ -2,20 +2,6 @@ import { Telegraf } from "telegraf";
 import { config } from "../config";
 import { getMember, markIntroCompleted } from "../models/member";
 
-const UNMUTED_PERMISSIONS = {
-  can_send_messages: true,
-  can_send_audios: true,
-  can_send_documents: true,
-  can_send_photos: true,
-  can_send_videos: true,
-  can_send_video_notes: true,
-  can_send_voice_notes: true,
-  can_send_polls: true,
-  can_send_other_messages: true,
-  can_add_web_page_previews: true,
-  can_invite_users: true,
-} as const;
-
 export function setup(bot: Telegraf): void {
   bot.on("message", async (ctx, next) => {
     const isIntroTopic =
@@ -35,14 +21,32 @@ export function setup(bot: Telegraf): void {
 
       await markIntroCompleted(userId);
 
-      await ctx.telegram.restrictChatMember(config.mainGroupId, userId, {
-        permissions: UNMUTED_PERMISSIONS,
-      });
-
       const name = ctx.from.first_name || ctx.from.username || "there";
-      await ctx.reply(
-        `Thanks for introducing yourself, ${name}! You're now unmuted in the main group. 🎉`,
+
+      // Send group confirmation, then auto-delete after 10 seconds
+      const confirmation = await ctx.reply(
+        `Thanks for introducing yourself, ${name}! You can now post freely in the group.`,
       );
+      setTimeout(async () => {
+        try {
+          await ctx.telegram.deleteMessage(
+            confirmation.chat.id,
+            confirmation.message_id,
+          );
+        } catch {
+          // Message may already be deleted
+        }
+      }, 10_000);
+
+      // DM the user a persistent confirmation
+      try {
+        await ctx.telegram.sendMessage(
+          userId,
+          `Thanks for introducing yourself, ${name}! You can now post freely in the group. 🎉`,
+        );
+      } catch {
+        // User hasn't started the bot but group message already sent above
+      }
     } catch (err) {
       console.error(
         `Error checking intro for user ${userId}:`,
