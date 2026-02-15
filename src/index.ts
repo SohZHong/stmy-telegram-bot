@@ -2,6 +2,7 @@ import { Telegraf } from "telegraf";
 import { config } from "./config";
 import { close } from "./db/database";
 import { runMigrations } from "./db/migrate";
+import { handleStartupError } from "./errors";
 import { setup as setupAdmin } from "./handlers/admin";
 import { setup as setupIntroFlow } from "./handlers/introFlow";
 import { setup as setupMessageGuard } from "./handlers/messageGuard";
@@ -9,14 +10,13 @@ import { setup as setupNewMember } from "./handlers/newMember";
 
 const bot = new Telegraf(config.botToken);
 
-// Registration order matters:
-// 1. Admin commands first (always available)
-// 2. IntroFlow handles DM-based intro collection (private chats)
-// 3. NewMember handles join events (posts welcome button)
-// 4. MessageGuard blocks non-introduced users in group
+// Handle admin commands
 setupAdmin(bot);
+// Handles DM-based intro collection (private chats)
 setupIntroFlow(bot);
+// Handles join events (posts welcome button)
 setupNewMember(bot);
+// Blocks non-introduced users in group
 setupMessageGuard(bot);
 
 async function start(): Promise<void> {
@@ -36,7 +36,4 @@ function shutdown(signal: string): void {
 process.once("SIGINT", () => shutdown("SIGINT"));
 process.once("SIGTERM", () => shutdown("SIGTERM"));
 
-start().catch((err) => {
-  console.error("Failed to start bot:", err);
-  process.exit(1);
-});
+start().catch(handleStartupError);
