@@ -6,10 +6,13 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx --watch src/index.ts"
+    "dev": "tsx --watch src/index.ts",
+    "migrate": "tsx src/db/migrate.ts",
+    "migrate:create": "node-pg-migrate create --migration-file-language ts --migrations-dir src/db/migrations"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
+    "node-pg-migrate": "^8.0.4",
     "pg": "^8.13.1",
     "telegraf": "^4.16.3"
   },
