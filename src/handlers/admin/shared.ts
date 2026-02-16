@@ -12,7 +12,8 @@ export type AdminAction =
   | { type: "AWAITING_WM_EDIT"; messageId: number }
   | { type: "AWAITING_IG_EDIT" }
   | { type: "AWAITING_BW_ADD" }
-  | { type: "AWAITING_BW_EDIT"; wordId: number };
+  | { type: "AWAITING_BW_EDIT"; wordId: number }
+  | { type: "AWAITING_AG_EDIT" };
 
 // Log display utility
 export const ACTION_ALIASES: Record<string, AdminLogAction> = {
@@ -24,6 +25,7 @@ export const ACTION_ALIASES: Record<string, AdminLogAction> = {
   del_wm: "delete_welcome_message",
   edit_ig: "edit_intro_guide",
   reset: "reset_intro",
+  edit_ag: "edit_admin_guide",
   add_bw: "add_blocked_word",
   edit_bw: "edit_blocked_word",
   del_bw: "delete_blocked_word",
@@ -37,6 +39,7 @@ const ACTION_LABELS: Record<string, string> = {
   edit_welcome_message: "Edit WM",
   delete_welcome_message: "Del WM",
   edit_intro_guide: "Edit IG",
+  edit_admin_guide: "Edit AG",
   reset_intro: "Reset Intro",
   add_blocked_word: "Add BW",
   edit_blocked_word: "Edit BW",
@@ -54,6 +57,7 @@ export const ADMIN_HELP_BODY = [
   "• <b>Ban / Kick</b> — Search for a member, then ban (with message wipe) or kick",
   "• <b>Welcome Messages</b> — List, add, edit, delete welcome message templates",
   "• <b>Intro Guide</b> — View and edit the intro guide",
+  "• <b>Admin Guide</b> — View and edit the admin getting-started guide",
   "• <b>Stats</b> — Member counts and intro completion stats",
   "• <b>Blocked Words</b> — Manage words blocked from intro submissions",
   "• <b>Logs</b> — Browse admin action logs with filters and pagination",
@@ -69,7 +73,7 @@ export const ADMIN_HELP_BODY = [
   "/adminguide — Post a guide for admins to get started with the bot",
   "/posthelp — Post a pinnable help message",
   "",
-  "<b>Log type aliases:</b> approve, ban, kick, reset, add_wm, edit_wm, del_wm, edit_ig, add_bw, edit_bw, del_bw",
+  "<b>Log type aliases:</b> approve, ban, kick, reset, add_wm, edit_wm, del_wm, edit_ig, edit_ag, add_bw, edit_bw, del_bw",
 ].join("\n");
 
 export const HELP_TEXT = [
@@ -98,20 +102,25 @@ export const POSTHELP_TEXT =
   "Send <code>/start admin</code> to the bot in DM to open the admin panel.\n\n" +
   ADMIN_HELP_BODY;
 
-export function ADMIN_GUIDE_TEXT(botUsername: string): string {
-  return [
-    "<b>Admin Guide</b>",
-    "",
-    "To get started with the admin panel:",
-    `1. Open a DM with <a href="https://t.me/${botUsername}">@${botUsername}</a>`,
-    '2. Send <code>/start admin</code> or click "Start" then send the command',
-    "3. You'll see the admin menu with all management options",
-    "",
-    "<b>Why DM the bot?</b>",
-    "The admin panel runs in DM to keep the group clean. Starting a DM also lets you receive bot announcements and notifications.",
-    "",
-    `<b>Quick link:</b> <a href="https://t.me/${botUsername}?start=admin">Open Admin Panel</a>`,
-  ].join("\n");
+export const DEFAULT_ADMIN_GUIDE = [
+  "<b>Admin Guide</b>",
+  "",
+  "To get started with the admin panel:",
+  '1. Open a DM with <a href="https://t.me/{botUsername}">@{botUsername}</a>',
+  '2. Send <code>/start admin</code> or click "Start" then send the command',
+  "3. You'll see the admin menu with all management options",
+  "",
+  "<b>Why DM the bot?</b>",
+  "The admin panel runs in DM to keep the group clean. Starting a DM also lets you receive bot announcements and notifications.",
+  "",
+  '<b>Quick link:</b> <a href="https://t.me/{botUsername}?start=admin">Open Admin Panel</a>',
+].join("\n");
+
+export function renderAdminGuide(
+  template: string,
+  botUsername: string,
+): string {
+  return template.replace(/\{botUsername\}/g, botUsername);
 }
 
 export function backButton(callback: string, label = "Back") {

@@ -5,7 +5,8 @@ import {
   formatAction,
   HELP_TEXT,
   POSTHELP_TEXT,
-  ADMIN_GUIDE_TEXT,
+  DEFAULT_ADMIN_GUIDE,
+  renderAdminGuide,
 } from "./shared";
 import { config } from "../../config";
 import { getSetting, setSetting } from "../../models/settings";
@@ -163,9 +164,7 @@ export function setup(bot: Telegraf): void {
       });
     }
 
-    const admins = await ctx.telegram.getChatAdministrators(
-      config.mainGroupId,
-    );
+    const admins = await ctx.telegram.getChatAdministrators(config.mainGroupId);
 
     let sent = 0;
     let failed = 0;
@@ -181,7 +180,9 @@ export function setup(bot: Telegraf): void {
       }
     }
 
-    return ctx.reply(`Announcement sent to ${sent} admin(s).${failed > 0 ? ` ${failed} failed (admin hasn't started a DM with the bot).` : ""}`);
+    return ctx.reply(
+      `Announcement sent to ${sent} admin(s).${failed > 0 ? ` ${failed} failed (admin hasn't started a DM with the bot).` : ""}`,
+    );
   });
 
   bot.command("adminguide", async (ctx) => {
@@ -190,7 +191,8 @@ export function setup(bot: Telegraf): void {
     }
 
     const botInfo = await ctx.telegram.getMe();
-    const guideText = ADMIN_GUIDE_TEXT(botInfo.username!);
+    const template = (await getSetting("admin_guide")) || DEFAULT_ADMIN_GUIDE;
+    const guideText = renderAdminGuide(template, botInfo.username!);
     const chatId = config.mainGroupId;
     const topicId = config.adminTopicId;
 
@@ -227,5 +229,7 @@ export function setup(bot: Telegraf): void {
       String(sent.message_id),
       ctx.from.id,
     );
+
+    await ctx.reply("Admin guide posted and pinned in the admin topic.");
   });
 }
