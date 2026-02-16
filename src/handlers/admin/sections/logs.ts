@@ -33,12 +33,22 @@ export async function handleCallback(
         Markup.button.callback("Ban", "a:log:list:ban:0"),
         Markup.button.callback("Kick", "a:log:list:kick:0"),
       ],
+      [Markup.button.callback("Reset Intro", "a:log:list:reset:0")],
       [
         Markup.button.callback("Add WM", "a:log:list:add_wm:0"),
         Markup.button.callback("Edit WM", "a:log:list:edit_wm:0"),
         Markup.button.callback("Del WM", "a:log:list:del_wm:0"),
       ],
-      [Markup.button.callback("Edit IG", "a:log:list:edit_ig:0")],
+      [
+        Markup.button.callback("Edit IG", "a:log:list:edit_ig:0"),
+        Markup.button.callback("Edit AG", "a:log:list:edit_ag:0"),
+      ],
+      [
+        Markup.button.callback("Add BW", "a:log:list:add_bw:0"),
+        Markup.button.callback("Edit BW", "a:log:list:edit_bw:0"),
+        Markup.button.callback("Del BW", "a:log:list:del_bw:0"),
+      ],
+      [Markup.button.callback("Announce", "a:log:list:announce:0")],
       [backButton("a:main")],
     ];
     await ctx.editMessageText(
