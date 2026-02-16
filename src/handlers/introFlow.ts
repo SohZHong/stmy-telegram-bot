@@ -5,6 +5,7 @@ import { getMember, markIntroCompleted } from "../models/member";
 import { getSetting } from "../models/settings";
 import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { postToClosedTopic, unmuteUser } from "../permissions";
+import { getAllBlockedWords } from "../models/blockedWord";
 
 const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}!";
 
@@ -82,6 +83,25 @@ export function setup(bot: Telegraf): void {
     if (text.length < 20) {
       await ctx.reply(
         "Your introduction is a bit short. Please write at least 20 characters so the group can get to know you!",
+      );
+      return;
+    }
+
+    if (/(.)\1{4,}/.test(text)) {
+      await ctx.reply(
+        "Your introduction contains too many repeating characters. Please write a more meaningful introduction.",
+      );
+      return;
+    }
+
+    const blockedWords = await getAllBlockedWords();
+    const hasBlockedWord = blockedWords.some((bw) => {
+      const escaped = bw.word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp(`\\b${escaped}\\b`, "i").test(text);
+    });
+    if (hasBlockedWord) {
+      await ctx.reply(
+        "Your introduction contains content that is not allowed. Please revise and try again.",
       );
       return;
     }

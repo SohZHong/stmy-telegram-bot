@@ -7,7 +7,10 @@ export type AdminLogAction =
   | "add_welcome_message"
   | "edit_welcome_message"
   | "delete_welcome_message"
-  | "edit_intro_guide";
+  | "edit_intro_guide"
+  | "add_blocked_word"
+  | "edit_blocked_word"
+  | "delete_blocked_word";
 
 export interface AdminLog {
   id: number;

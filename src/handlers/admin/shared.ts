@@ -11,7 +11,9 @@ export type AdminAction =
   | { type: "AWAITING_BAN_SEARCH" }
   | { type: "AWAITING_WM_ADD" }
   | { type: "AWAITING_WM_EDIT"; messageId: number }
-  | { type: "AWAITING_IG_EDIT" };
+  | { type: "AWAITING_IG_EDIT" }
+  | { type: "AWAITING_BW_ADD" }
+  | { type: "AWAITING_BW_EDIT"; wordId: number };
 
 // Log display utility
 export const ACTION_ALIASES: Record<string, AdminLogAction> = {
@@ -22,6 +24,9 @@ export const ACTION_ALIASES: Record<string, AdminLogAction> = {
   edit_wm: "edit_welcome_message",
   del_wm: "delete_welcome_message",
   edit_ig: "edit_intro_guide",
+  add_bw: "add_blocked_word",
+  edit_bw: "edit_blocked_word",
+  del_bw: "delete_blocked_word",
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -32,6 +37,9 @@ const ACTION_LABELS: Record<string, string> = {
   edit_welcome_message: "Edit WM",
   delete_welcome_message: "Del WM",
   edit_intro_guide: "Edit IG",
+  add_blocked_word: "Add BW",
+  edit_blocked_word: "Edit BW",
+  delete_blocked_word: "Del BW",
 };
 
 export const adminState = new Map<number, AdminAction>();
@@ -46,6 +54,7 @@ export const ADMIN_HELP_BODY = [
   "• <b>Welcome Messages</b> — List, add, edit, delete welcome message templates",
   "• <b>Intro Guide</b> — View and edit the intro guide",
   "• <b>Stats</b> — Member counts and intro completion stats",
+  "• <b>Blocked Words</b> — Manage words blocked from intro submissions",
   "• <b>Logs</b> — Browse admin action logs with filters and pagination",
   "",
   "<b>Group Commands</b>",
@@ -56,7 +65,7 @@ export const ADMIN_HELP_BODY = [
   "/logs [type] [start] [end] — View logs by date range",
   "/posthelp — Post a pinnable help message",
   "",
-  "<b>Log type aliases:</b> approve, ban, kick, add_wm, edit_wm, del_wm, edit_ig",
+  "<b>Log type aliases:</b> approve, ban, kick, add_wm, edit_wm, del_wm, edit_ig, add_bw, edit_bw, del_bw",
 ].join("\n");
 
 export function truncate(text: string, max: number): string {
