@@ -24,6 +24,7 @@ export const ACTION_ALIASES: Record<string, AdminLogAction> = {
   edit_wm: "edit_welcome_message",
   del_wm: "delete_welcome_message",
   edit_ig: "edit_intro_guide",
+  reset: "reset_intro",
   add_bw: "add_blocked_word",
   edit_bw: "edit_blocked_word",
   del_bw: "delete_blocked_word",
@@ -37,6 +38,7 @@ const ACTION_LABELS: Record<string, string> = {
   edit_welcome_message: "Edit WM",
   delete_welcome_message: "Del WM",
   edit_intro_guide: "Edit IG",
+  reset_intro: "Reset Intro",
   add_blocked_word: "Add BW",
   edit_blocked_word: "Edit BW",
   delete_blocked_word: "Del BW",
@@ -65,7 +67,7 @@ export const ADMIN_HELP_BODY = [
   "/logs [type] [start] [end] — View logs by date range",
   "/posthelp — Post a pinnable help message",
   "",
-  "<b>Log type aliases:</b> approve, ban, kick, add_wm, edit_wm, del_wm, edit_ig, add_bw, edit_bw, del_bw",
+  "<b>Log type aliases:</b> approve, ban, kick, reset, add_wm, edit_wm, del_wm, edit_ig, add_bw, edit_bw, del_bw",
 ].join("\n");
 
 export function truncate(text: string, max: number): string {

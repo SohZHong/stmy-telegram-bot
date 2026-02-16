@@ -8,6 +8,7 @@ export type AdminLogAction =
   | "edit_welcome_message"
   | "delete_welcome_message"
   | "edit_intro_guide"
+  | "reset_intro"
   | "add_blocked_word"
   | "edit_blocked_word"
   | "delete_blocked_word";

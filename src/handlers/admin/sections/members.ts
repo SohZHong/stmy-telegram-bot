@@ -13,8 +13,9 @@ import {
   countPendingMembers,
   searchMembers,
   markIntroCompleted,
+  resetIntroStatus,
 } from "../../../models/member";
-import { unmuteUser } from "../../../permissions";
+import { muteUser, unmuteUser } from "../../../permissions";
 import { createAdminLog } from "../../../models/adminLog";
 
 export async function handleCallback(
@@ -113,6 +114,13 @@ export async function handleCallback(
           `a:mem:apr:${member.telegram_id}`,
         ),
       ]);
+    } else {
+      buttons.push([
+        Markup.button.callback(
+          "Reset Intro (mute + require redo)",
+          `a:mem:rst:${member.telegram_id}`,
+        ),
+      ]);
     }
     buttons.push([backButton("a:mem")]);
 
@@ -132,6 +140,22 @@ export async function handleCallback(
     await ctx.editMessageText(
       `Member ${telegramId} approved and unmuted.`,
       Markup.inlineKeyboard([[backButton("a:mem")]]),
+    );
+    return true;
+  }
+
+  if (data.startsWith("a:mem:rst:")) {
+    const telegramId = parseInt(data.split(":")[3], 10);
+    await resetIntroStatus(telegramId);
+    try {
+      await muteUser(ctx.telegram, telegramId);
+    } catch {
+      // May lack permission
+    }
+    await createAdminLog("reset_intro", userId, telegramId);
+    await ctx.editMessageText(
+      `Member ${telegramId} intro reset and muted.`,
+      Markup.inlineKeyboard([[backButton(`a:mem:v:${telegramId}`)]]),
     );
     return true;
   }

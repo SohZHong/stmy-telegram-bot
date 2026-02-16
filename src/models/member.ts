@@ -40,6 +40,13 @@ export async function markIntroCompleted(telegramId: number): Promise<void> {
   );
 }
 
+export async function resetIntroStatus(telegramId: number): Promise<void> {
+  await pool.query(
+    `UPDATE members SET intro_completed = FALSE, intro_completed_at = NULL WHERE telegram_id = $1`,
+    [telegramId],
+  );
+}
+
 export async function getPendingMembers(
   limit: number,
   offset: number,
