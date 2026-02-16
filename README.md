@@ -35,7 +35,18 @@ src/
     newMember.ts         # Listens for new_chat_members — posts welcome button in Welcome topic
     introFlow.ts         # DM-based intro collection (/start intro deep link → collects text → posts to Introduction topic)
     messageGuard.ts      # Deletes messages from non-introduced users, sends DM reminder
-    admin.ts             # Admin commands (/setwelcome, /setintroguide, etc.)
+    admin/
+      index.ts           # Re-exports setupCommands, setupMenu, isAdmin, isAdminById
+      auth.ts            # isAdmin, isAdminById helpers
+      commands.ts        # Group chat commands (/setintroguide, /viewintroguide)
+      shared.ts          # Shared types (AdminAction, CbCtx, TextCtx), state map, and helpers
+      menu.ts            # DM admin menu orchestrator — /start admin entry, callback + text routers
+      sections/
+        members.ts       # Members list, search, approve
+        ban.ts           # Ban / kick flow
+        welcomeMessages.ts # Welcome message CRUD
+        introGuide.ts    # Intro guide view / edit
+        stats.ts         # Stats overview
 ```
 
 **Key conventions:**
@@ -154,22 +165,44 @@ Unrecognized errors fall through and log the full error object.
    setupMyHandler(bot);
    ```
 
+### Adding a new admin menu section
+
+1. Create `src/handlers/admin/sections/mySection.ts` exporting:
+   ```typescript
+   export async function handleCallback(ctx: CbCtx, data: string, userId: number): Promise<boolean>
+   // Optional — only needed if the section collects text input:
+   export async function handleText(ctx: TextCtx, text: string, state: AdminAction, userId: number): Promise<boolean>
+   ```
+   Return `true` if handled, `false` to pass to the next section.
+2. Add it to the `sections` array in `src/handlers/admin/menu.ts`
+3. Add a button for it in `mainMenuKeyboard()` in the same file
+
 ### Adding a column to an existing table
 
 1. Create a migration: `npm run migrate:create -- add-column-to-members`
 2. Update the corresponding interface in `src/models/`
 3. Add/update query functions as needed
 
-## Admin commands
+## Admin interface
+
+### Group chat commands
 
 | Command | Description |
 |---|---|
-| `/setwelcome <message>` | Set the welcome message. Use `{name}` as a placeholder. |
 | `/setintroguide <message>` | Set the intro guide text |
-| `/viewwelcome` | View the current welcome message |
 | `/viewintroguide` | View the current intro guide |
 
 Only group admins can use these commands.
+
+### DM admin menu
+
+Open via the deep link `t.me/{bot}?start=admin` (group admins only). Provides an inline-button menu for:
+
+- **Members** — list pending, search, approve (mark intro done + unmute)
+- **Ban / Kick** — search for a member, then ban (with message wipe) or kick
+- **Welcome Messages** — list, add, edit, delete welcome message templates
+- **Intro Guide** — view and edit the intro guide
+- **Stats** — member counts, intro completion stats, welcome message count
 
 ## Production
 
