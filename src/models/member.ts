@@ -39,3 +39,64 @@ export async function markIntroCompleted(telegramId: number): Promise<void> {
     [telegramId],
   );
 }
+
+export async function getPendingMembers(
+  limit: number,
+  offset: number,
+): Promise<Member[]> {
+  const { rows } = await pool.query<Member>(
+    `SELECT * FROM members WHERE intro_completed = FALSE ORDER BY joined_at DESC LIMIT $1 OFFSET $2`,
+    [limit, offset],
+  );
+  return rows;
+}
+
+export async function countPendingMembers(): Promise<number> {
+  const { rows } = await pool.query<{ count: string }>(
+    `SELECT COUNT(*) as count FROM members WHERE intro_completed = FALSE`,
+  );
+  return parseInt(rows[0].count, 10);
+}
+
+export async function searchMembers(query: string): Promise<Member[]> {
+  // Try exact telegram_id match first, otherwise search by username/first_name
+  const { rows } = await pool.query<Member>(
+    `SELECT * FROM members
+     WHERE telegram_id::text = $1
+        OR username ILIKE '%' || $2 || '%'
+        OR first_name ILIKE '%' || $2 || '%'
+     ORDER BY joined_at DESC
+     LIMIT 10`,
+    [query, query],
+  );
+  return rows;
+}
+
+export async function deleteMember(telegramId: number): Promise<boolean> {
+  const { rowCount } = await pool.query(
+    `DELETE FROM members WHERE telegram_id = $1`,
+    [telegramId],
+  );
+  return (rowCount ?? 0) > 0;
+}
+
+export interface MemberStats {
+  total: number;
+  pending: number;
+  completed: number;
+  completed_today: number;
+  completed_this_week: number;
+}
+
+export async function getMemberStats(): Promise<MemberStats> {
+  const { rows } = await pool.query<MemberStats>(`
+    SELECT
+      COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE intro_completed = FALSE)::int AS pending,
+      COUNT(*) FILTER (WHERE intro_completed = TRUE)::int AS completed,
+      COUNT(*) FILTER (WHERE intro_completed_at >= CURRENT_DATE)::int AS completed_today,
+      COUNT(*) FILTER (WHERE intro_completed_at >= date_trunc('week', CURRENT_DATE))::int AS completed_this_week
+    FROM members
+  `);
+  return rows[0];
+}
