@@ -1,28 +1,6 @@
-import { Context, Telegram, Telegraf } from "telegraf";
-import { config } from "../config";
-import { getSetting, setSetting } from "../models/settings";
-
-export async function isAdmin(ctx: Context): Promise<boolean> {
-  if (!ctx.from) return false;
-  return isAdminById(ctx.telegram, ctx.from.id);
-}
-
-export async function isAdminById(
-  telegram: Telegram,
-  userId: number,
-): Promise<boolean> {
-  try {
-    const chatMember = await telegram.getChatMember(
-      config.mainGroupId,
-      userId,
-    );
-    return (
-      chatMember.status === "administrator" || chatMember.status === "creator"
-    );
-  } catch {
-    return false;
-  }
-}
+import { Telegraf } from "telegraf";
+import { isAdmin } from "./auth";
+import { getSetting, setSetting } from "../../models/settings";
 
 export function setup(bot: Telegraf): void {
   bot.command("setintroguide", async (ctx) => {
