@@ -111,7 +111,7 @@ export async function handleCallback(
       return true;
     }
 
-    const adminLabel = await resolveUser(log.admin_telegram_id);
+    const adminLabel = await resolveUser(log.admin_telegram_id, ctx.telegram);
 
     const lines = [
       `ID: ${log.id}`,
@@ -119,7 +119,7 @@ export async function handleCallback(
       `Admin: ${adminLabel}`,
     ];
     if (log.target_id) {
-      const targetLabel = await resolveUser(log.target_id);
+      const targetLabel = await resolveUser(log.target_id, ctx.telegram);
       lines.push(`Target: ${targetLabel}`);
     }
     if (log.details) lines.push(`Details: ${log.details}`);

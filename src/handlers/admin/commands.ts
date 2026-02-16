@@ -19,13 +19,16 @@ import type { AdminLogAction, AdminLog } from "../../models/adminLog";
 import { resolveUser } from "../../utils/user";
 import { escapeHtml } from "../../utils/format";
 
-async function formatLog(log: AdminLog): Promise<string> {
+async function formatLog(
+  log: AdminLog,
+  telegram: import("telegraf").Telegram,
+): Promise<string> {
   const date = log.created_at.toISOString().replace("T", " ").split(".")[0];
   const action = formatAction(log.action);
-  const admin = await resolveUser(log.admin_telegram_id);
+  const admin = await resolveUser(log.admin_telegram_id, telegram);
   let line = `[${date}] ${action} by ${admin}`;
   if (log.target_id) {
-    const target = await resolveUser(log.target_id);
+    const target = await resolveUser(log.target_id, telegram);
     line += ` → ${target}`;
   }
   if (log.details) line += ` (${log.details.slice(0, 50)})`;
@@ -130,7 +133,7 @@ export function setup(bot: Telegraf): void {
       return ctx.reply("No logs found.");
     }
 
-    const lines = await Promise.all(logs.map(formatLog));
+    const lines = await Promise.all(logs.map((l) => formatLog(l, ctx.telegram)));
     return ctx.reply(lines.join("\n"));
   });
 
@@ -157,7 +160,7 @@ export function setup(bot: Telegraf): void {
       );
     }
 
-    const sender = await resolveUser(String(ctx.from.id));
+    const sender = await resolveUser(String(ctx.from.id), ctx.telegram);
     const text = `<b>Announcement by ${escapeHtml(sender)}</b>\n\n${message}`;
 
     if (isPreview) {

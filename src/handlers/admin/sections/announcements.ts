@@ -3,9 +3,9 @@ import type { CbCtx, TextCtx, AdminAction } from "../shared";
 import { adminState, backButton } from "../shared";
 import { config } from "../../../config";
 import { createAdminLog } from "../../../models/adminLog";
-import { resolveUser } from "../../../utils/user";
 
 const pendingAnnouncement = new Map<number, string>();
+const pendingSender = new Map<number, string>();
 
 export async function handleCallback(
   ctx: CbCtx,
@@ -15,6 +15,7 @@ export async function handleCallback(
   if (data === "a:ann") {
     adminState.delete(userId);
     pendingAnnouncement.delete(userId);
+    pendingSender.delete(userId);
     await ctx.editMessageText(
       "Announcements\n\nBroadcast a message to all group admins via DM.",
       Markup.inlineKeyboard([
@@ -45,7 +46,8 @@ export async function handleCallback(
     }
 
     pendingAnnouncement.delete(userId);
-    const sender = await resolveUser(String(userId));
+    const sender = pendingSender.get(userId) ?? String(userId);
+    pendingSender.delete(userId);
     const text = `<b>Announcement by ${sender}</b>\n\n${message}`;
 
     const admins = await ctx.telegram.getChatAdministrators(
@@ -86,24 +88,9 @@ export async function handleCallback(
     return true;
   }
 
-  if (data === "a:ann:preview") {
-    const message = pendingAnnouncement.get(userId);
-    if (!message) {
-      await ctx.editMessageText(
-        "No pending announcement found.",
-        Markup.inlineKeyboard([[backButton("a:ann")]]),
-      );
-      return true;
-    }
-
-    const sender = await resolveUser(String(userId));
-    const text = `<b>Announcement by ${sender}</b>\n\n${message}`;
-    await ctx.telegram.sendMessage(userId, text, { parse_mode: "HTML" });
-    return true;
-  }
-
   if (data === "a:ann:cancel") {
     pendingAnnouncement.delete(userId);
+    pendingSender.delete(userId);
     await ctx.editMessageText(
       "Announcement cancelled.",
       Markup.inlineKeyboard([[backButton("a:ann")]]),
@@ -124,14 +111,16 @@ export async function handleText(
 
   adminState.delete(userId);
   pendingAnnouncement.set(userId, text);
-  const sender = await resolveUser(String(userId));
+
+  const from = ctx.from!;
+  const sender = from.username ? `@${from.username}` : from.first_name || "Unknown";
+  pendingSender.set(userId, sender);
 
   await ctx.reply(
     `<b>Preview</b>\n\n<b>Announcement by ${sender}</b>\n\n${text}`,
     {
       parse_mode: "HTML",
       ...Markup.inlineKeyboard([
-        [Markup.button.callback("Send Preview to Me", "a:ann:preview")],
         [Markup.button.callback("Confirm & Send", "a:ann:confirm")],
         [Markup.button.callback("Cancel", "a:ann:cancel")],
       ]),
