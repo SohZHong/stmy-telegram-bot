@@ -24,6 +24,15 @@ export function setup(bot: Telegraf): void {
         const existing = await getMember(member.id);
 
         if (existing?.intro_completed) {
+          const name = member.first_name || member.username || "there";
+          await ctx.telegram.sendMessage(
+            config.mainGroupId,
+            `Welcome back, [${name}](tg://user?id=${member.id})!`,
+            {
+              message_thread_id: config.welcomeTopicId,
+              parse_mode: "Markdown",
+            },
+          );
           continue;
         }
 
