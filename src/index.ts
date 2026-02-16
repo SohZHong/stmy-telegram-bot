@@ -4,14 +4,17 @@ import { close } from "./db/database";
 import { runMigrations } from "./db/migrate";
 import { handleStartupError } from "./errors";
 import { setup as setupAdmin } from "./handlers/admin";
+import { setup as setupAdminMenu } from "./handlers/adminMenu";
 import { setup as setupIntroFlow } from "./handlers/introFlow";
 import { setup as setupMessageGuard } from "./handlers/messageGuard";
 import { setup as setupNewMember } from "./handlers/newMember";
 
 const bot = new Telegraf(config.botToken);
 
-// Handle admin commands
+// Handle admin commands (group chat, backward compat)
 setupAdmin(bot);
+// DM admin menu (before introFlow so /start admin is caught first)
+setupAdminMenu(bot);
 // Handles DM-based intro collection (private chats)
 setupIntroFlow(bot);
 // Handles join events (posts welcome button)
