@@ -1,33 +1,13 @@
 import { Markup } from "telegraf";
 import type { CbCtx } from "../shared";
-import { PAGE_SIZE, truncate, backButton } from "../shared";
 import {
-  getLogsPaginated,
-  getLogById,
-  countLogs,
-} from "../../../models/adminLog";
-import type { AdminLogAction } from "../../../models/adminLog";
-
-const ACTION_LABELS: Record<
-  string,
-  { label: string; filter?: AdminLogAction }
-> = {
-  all: { label: "All" },
-  approve: { label: "Approve", filter: "approve_member" },
-  ban: { label: "Ban", filter: "ban_member" },
-  kick: { label: "Kick", filter: "kick_member" },
-  add_wm: { label: "Add WM", filter: "add_welcome_message" },
-  edit_wm: { label: "Edit WM", filter: "edit_welcome_message" },
-  del_wm: { label: "Del WM", filter: "delete_welcome_message" },
-  edit_ig: { label: "Edit IG", filter: "edit_intro_guide" },
-};
-
-function formatAction(action: string): string {
-  for (const entry of Object.values(ACTION_LABELS)) {
-    if (entry.filter === action) return entry.label;
-  }
-  return action;
-}
+  PAGE_SIZE,
+  truncate,
+  backButton,
+  ACTION_ALIASES,
+  formatAction,
+} from "../shared";
+import { getLogsPaginated, getLogById, countLogs } from "../../../models/adminLog";
 
 function formatLogLine(log: {
   id: number;
@@ -72,7 +52,7 @@ export async function handleCallback(
     const parts = data.split(":");
     const type = parts[3];
     const page = parseInt(parts[4], 10);
-    const filter = ACTION_LABELS[type]?.filter;
+    const filter = ACTION_ALIASES[type];
     const offset = page * PAGE_SIZE;
 
     const [logs, total] = await Promise.all([
@@ -110,7 +90,7 @@ export async function handleCallback(
     rows.push(nav);
     rows.push([backButton("a:log")]);
 
-    const label = ACTION_LABELS[type]?.label ?? "All";
+    const label = filter ? formatAction(filter) : "All";
     await ctx.editMessageText(
       `Logs — ${label} (${total})`,
       Markup.inlineKeyboard(rows),

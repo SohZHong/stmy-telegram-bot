@@ -1,18 +1,30 @@
 import { Markup, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 import { isAdminById } from "./auth";
-import { adminState, backButton } from "./shared";
+import { adminState, backButton, ADMIN_HELP_BODY } from "./shared";
 import type { CbCtx, TextCtx, AdminAction } from "./shared";
 import * as members from "./sections/members";
 import * as ban from "./sections/ban";
 import * as welcomeMessages from "./sections/welcomeMessages";
 import * as introGuide from "./sections/introGuide";
 import * as stats from "./sections/stats";
+import * as logs from "./sections/logs";
 
 const sections: {
-  handleCallback: (ctx: CbCtx, data: string, userId: number) => Promise<boolean>;
-  handleText?: (ctx: TextCtx, text: string, state: AdminAction, userId: number) => Promise<boolean>;
-}[] = [members, ban, welcomeMessages, introGuide, stats];
+  handleCallback: (
+    ctx: CbCtx,
+    data: string,
+    userId: number,
+  ) => Promise<boolean>;
+  handleText?: (
+    ctx: TextCtx,
+    text: string,
+    state: AdminAction,
+    userId: number,
+  ) => Promise<boolean>;
+}[] = [members, ban, welcomeMessages, introGuide, stats, logs];
+
+const HELP_TEXT = "<b>Admin Menu Help</b>\n\n" + ADMIN_HELP_BODY;
 
 function mainMenuKeyboard() {
   return Markup.inlineKeyboard([
@@ -21,6 +33,8 @@ function mainMenuKeyboard() {
     [Markup.button.callback("Welcome Messages", "a:wm")],
     [Markup.button.callback("Intro Guide", "a:ig")],
     [Markup.button.callback("Stats", "a:stats")],
+    [Markup.button.callback("Logs", "a:log")],
+    [Markup.button.callback("Help", "a:help")],
   ]);
 }
 
@@ -67,6 +81,15 @@ export function setup(bot: Telegraf): void {
       // Noop for pagination label
       if (data === "a:noop") return;
 
+      // Help
+      if (data === "a:help") {
+        await ctx.editMessageText(HELP_TEXT, {
+          parse_mode: "HTML",
+          ...Markup.inlineKeyboard([[backButton("a:main")]]),
+        });
+        return;
+      }
+
       // Delegate to sections
       for (const section of sections) {
         if (await section.handleCallback(ctx, data, userId)) return;
@@ -101,7 +124,11 @@ export function setup(bot: Telegraf): void {
 
     try {
       for (const section of sections) {
-        if (section.handleText && await section.handleText(ctx, text, state, userId)) return;
+        if (
+          section.handleText &&
+          (await section.handleText(ctx, text, state, userId))
+        )
+          return;
       }
     } catch (err) {
       console.error(`Admin menu text handler error:`, (err as Error).message);

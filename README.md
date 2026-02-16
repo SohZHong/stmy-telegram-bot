@@ -31,6 +31,7 @@ src/
   models/
     member.ts            # Member interface and DB queries (upsert, get, mark intro)
     settings.ts          # Setting interface and DB queries (get, set)
+    adminLog.ts          # Admin action log interface and DB queries
   handlers/
     newMember.ts         # Listens for new_chat_members — posts welcome button in Welcome topic
     introFlow.ts         # DM-based intro collection (/start intro deep link → collects text → posts to Introduction topic)
@@ -47,6 +48,7 @@ src/
         welcomeMessages.ts # Welcome message CRUD
         introGuide.ts    # Intro guide view / edit
         stats.ts         # Stats overview
+        logs.ts          # Admin action logs browser
 ```
 
 **Key conventions:**
@@ -76,13 +78,13 @@ cp .env.example .env
 
 Fill in your `.env`:
 
-| Variable | Description |
-|---|---|
-| `BOT_TOKEN` | Telegram bot token from [@BotFather](https://t.me/BotFather) |
-| `MAIN_GROUP_ID` | Telegram chat ID of the main supergroup |
-| `INTRO_TOPIC_ID` | Forum topic thread ID for introductions (not a chat ID — just the thread number) |
+| Variable           | Description                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------- |
+| `BOT_TOKEN`        | Telegram bot token from [@BotFather](https://t.me/BotFather)                                 |
+| `MAIN_GROUP_ID`    | Telegram chat ID of the main supergroup                                                      |
+| `INTRO_TOPIC_ID`   | Forum topic thread ID for introductions (not a chat ID — just the thread number)             |
 | `WELCOME_TOPIC_ID` | Forum topic thread ID for welcome messages (where the "Start Introduction" button is posted) |
-| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_URL`     | PostgreSQL connection string                                                                 |
 
 ### 3. Start the database
 
@@ -115,16 +117,18 @@ npm run migrate:create -- my-migration-name
 This creates a new timestamped file in `src/db/migrations/`. Edit the generated file to add your `up` and `down` functions:
 
 ```typescript
-import type { MigrationBuilder } from 'node-pg-migrate' with { "resolution-mode": "import" };
+import type { MigrationBuilder } from "node-pg-migrate" with {
+  "resolution-mode": "import",
+};
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
-  pgm.addColumns('members', {
-    bio: { type: 'text' },
+  pgm.addColumns("members", {
+    bio: { type: "text" },
   });
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
-  pgm.dropColumns('members', ['bio']);
+  pgm.dropColumns("members", ["bio"]);
 }
 ```
 
@@ -144,8 +148,8 @@ Unrecognized errors fall through and log the full error object.
 
 ### Common errors
 
-| Error | Cause | Fix |
-|---|---|---|
+| Error                                                  | Cause                                                              | Fix                                                                    |
+| ------------------------------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | `409 Conflict: terminated by other getUpdates request` | Two bot instances running simultaneously (e.g. Docker + local dev) | Stop one instance: `docker compose stop bot` or kill the local process |
 
 ## Adding a new feature
@@ -161,7 +165,7 @@ Unrecognized errors fall through and log the full error object.
 1. Create `src/handlers/myHandler.ts` with a `setup(bot: Telegraf)` function
 2. Register it in `src/index.ts`:
    ```typescript
-   import { setup as setupMyHandler } from './handlers/myHandler.js';
+   import { setup as setupMyHandler } from "./handlers/myHandler.js";
    setupMyHandler(bot);
    ```
 
@@ -169,9 +173,18 @@ Unrecognized errors fall through and log the full error object.
 
 1. Create `src/handlers/admin/sections/mySection.ts` exporting:
    ```typescript
-   export async function handleCallback(ctx: CbCtx, data: string, userId: number): Promise<boolean>
+   export async function handleCallback(
+     ctx: CbCtx,
+     data: string,
+     userId: number,
+   ): Promise<boolean>;
    // Optional — only needed if the section collects text input:
-   export async function handleText(ctx: TextCtx, text: string, state: AdminAction, userId: number): Promise<boolean>
+   export async function handleText(
+     ctx: TextCtx,
+     text: string,
+     state: AdminAction,
+     userId: number,
+   ): Promise<boolean>;
    ```
    Return `true` if handled, `false` to pass to the next section.
 2. Add it to the `sections` array in `src/handlers/admin/menu.ts`
@@ -187,11 +200,14 @@ Unrecognized errors fall through and log the full error object.
 
 ### Group chat commands
 
-| Command | Description |
-|---|---|
-| `/help` | List all available commands |
-| `/setintroguide <message>` | Set the intro guide text (admin) |
-| `/viewintroguide` | View the current intro guide (admin) |
+| Command                      | Description                                              |
+| ---------------------------- | -------------------------------------------------------- |
+| `/help`                      | List all available commands                              |
+| `/setintroguide <message>`   | Set the intro guide text (admin)                         |
+| `/viewintroguide`            | View the current intro guide (admin)                     |
+| `/logs [type] [count]`       | View recent admin action logs (admin)                    |
+| `/logs [type] [start] [end]` | View logs by date range (admin)                          |
+| `/posthelp`                  | Post a pinnable help message to the current chat (admin) |
 
 Only group admins can use these commands.
 
@@ -204,6 +220,8 @@ Open via the deep link `t.me/{bot}?start=admin` (group admins only). Provides an
 - **Welcome Messages** — list, add, edit, delete welcome message templates
 - **Intro Guide** — view and edit the intro guide
 - **Stats** — member counts, intro completion stats, welcome message count
+- **Logs** — browse admin action logs with filters and pagination
+- **Help** — view available commands and menu section descriptions
 
 ## Production
 
@@ -224,10 +242,10 @@ The `db` service includes a healthcheck — the bot container waits for PostgreS
 
 ## Scripts
 
-| Script | Description |
-|---|---|
-| `npm run dev` | Start with hot-reload (tsx) |
-| `npm run build` | Compile TypeScript to `dist/` |
-| `npm start` | Run compiled output |
-| `npm run migrate` | Run migrations manually |
+| Script                             | Description                   |
+| ---------------------------------- | ----------------------------- |
+| `npm run dev`                      | Start with hot-reload (tsx)   |
+| `npm run build`                    | Compile TypeScript to `dist/` |
+| `npm start`                        | Run compiled output           |
+| `npm run migrate`                  | Run migrations manually       |
 | `npm run migrate:create -- <name>` | Scaffold a new migration file |
