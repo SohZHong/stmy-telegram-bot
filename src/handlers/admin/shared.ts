@@ -64,6 +64,9 @@ export const ADMIN_HELP_BODY = [
   "/viewintroguide — View current intro guide",
   "/logs [type] [count] — View recent admin logs",
   "/logs [type] [start] [end] — View logs by date range",
+  "/announce &lt;msg&gt; — Broadcast announcement to all admins via DM",
+  "/announce preview &lt;msg&gt; — Preview announcement (sent only to you)",
+  "/adminguide — Post a guide for admins to get started with the bot",
   "/posthelp — Post a pinnable help message",
   "",
   "<b>Log type aliases:</b> approve, ban, kick, reset, add_wm, edit_wm, del_wm, edit_ig, add_bw, edit_bw, del_bw",
@@ -80,6 +83,8 @@ export const HELP_TEXT = [
   "/viewintroguide  —  View the current intro guide",
   "/logs <code>[type] [count]</code>  —  View recent admin logs",
   "/logs <code>[type] [start] [end]</code>  —  View logs by date range",
+  "/announce <code>&lt;msg&gt;</code>  —  Broadcast to all admins via DM",
+  "/adminguide  —  Post admin getting-started guide",
   "/posthelp  —  Post a pinnable help message to the current chat",
   "",
   "<b>Admin menu (DM only)</b>",
@@ -92,6 +97,22 @@ export const POSTHELP_TEXT =
   "<b>DM Admin Menu</b>\n" +
   "Send <code>/start admin</code> to the bot in DM to open the admin panel.\n\n" +
   ADMIN_HELP_BODY;
+
+export function ADMIN_GUIDE_TEXT(botUsername: string): string {
+  return [
+    "<b>Admin Guide</b>",
+    "",
+    "To get started with the admin panel:",
+    `1. Open a DM with <a href="https://t.me/${botUsername}">@${botUsername}</a>`,
+    '2. Send <code>/start admin</code> or click "Start" then send the command',
+    "3. You'll see the admin menu with all management options",
+    "",
+    "<b>Why DM the bot?</b>",
+    "The admin panel runs in DM to keep the group clean. Starting a DM also lets you receive bot announcements and notifications.",
+    "",
+    `<b>Quick link:</b> <a href="https://t.me/${botUsername}?start=admin">Open Admin Panel</a>`,
+  ].join("\n");
+}
 
 export function backButton(callback: string, label = "Back") {
   return Markup.button.callback(`<< ${label}`, callback);

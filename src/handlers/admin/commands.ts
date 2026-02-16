@@ -5,7 +5,9 @@ import {
   formatAction,
   HELP_TEXT,
   POSTHELP_TEXT,
+  ADMIN_GUIDE_TEXT,
 } from "./shared";
+import { config } from "../../config";
 import { getSetting, setSetting } from "../../models/settings";
 import {
   createAdminLog,
@@ -136,5 +138,94 @@ export function setup(bot: Telegraf): void {
     }
 
     await ctx.reply(POSTHELP_TEXT, { parse_mode: "HTML" });
+  });
+
+  bot.command("announce", async (ctx) => {
+    if (!(await isAdmin(ctx))) {
+      return ctx.reply("Only main group admins can use this command.");
+    }
+
+    const raw = ctx.message.text.replace(/^\/announce\s*/, "");
+    const isPreview = raw.startsWith("preview ");
+    const message = isPreview ? raw.replace(/^preview\s*/, "") : raw;
+
+    if (!message) {
+      return ctx.reply(
+        "Usage:\n/announce <message> — Broadcast to all admins\n/announce preview <message> — Preview (sent only to you)",
+      );
+    }
+
+    const text = `<b>Bot Announcement</b>\n\n${message}`;
+
+    if (isPreview) {
+      return ctx.telegram.sendMessage(ctx.from.id, text, {
+        parse_mode: "HTML",
+      });
+    }
+
+    const admins = await ctx.telegram.getChatAdministrators(
+      config.mainGroupId,
+    );
+
+    let sent = 0;
+    let failed = 0;
+    for (const admin of admins) {
+      if (admin.user.is_bot) continue;
+      try {
+        await ctx.telegram.sendMessage(admin.user.id, text, {
+          parse_mode: "HTML",
+        });
+        sent++;
+      } catch {
+        failed++;
+      }
+    }
+
+    return ctx.reply(`Announcement sent to ${sent} admin(s).${failed > 0 ? ` ${failed} failed (admin hasn't started a DM with the bot).` : ""}`);
+  });
+
+  bot.command("adminguide", async (ctx) => {
+    if (!(await isAdmin(ctx))) {
+      return ctx.reply("Only main group admins can use this command.");
+    }
+
+    const botInfo = await ctx.telegram.getMe();
+    const guideText = ADMIN_GUIDE_TEXT(botInfo.username!);
+    const chatId = config.mainGroupId;
+    const topicId = config.adminTopicId;
+
+    // Unpin previous admin guide if one exists
+    const prevMessageId = await getSetting("admin_guide_message_id");
+    if (prevMessageId) {
+      try {
+        await ctx.telegram.unpinChatMessage(
+          chatId,
+          parseInt(prevMessageId, 10),
+        );
+      } catch {
+        // Old message may have been deleted
+      }
+    }
+
+    const sent = await ctx.telegram.sendMessage(chatId, guideText, {
+      message_thread_id: topicId,
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
+
+    // Pin the new guide and store its message ID
+    try {
+      await ctx.telegram.pinChatMessage(chatId, sent.message_id, {
+        disable_notification: true,
+      });
+    } catch {
+      // Bot may lack pin permissions
+    }
+
+    await setSetting(
+      "admin_guide_message_id",
+      String(sent.message_id),
+      ctx.from.id,
+    );
   });
 }
