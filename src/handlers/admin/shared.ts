@@ -1,6 +1,5 @@
 import { Markup } from "telegraf";
 import type { Context } from "telegraf";
-import type { Member } from "../../models/member";
 import type { AdminLogAction } from "../../models/adminLog";
 
 export type CbCtx = Context;
@@ -70,21 +69,32 @@ export const ADMIN_HELP_BODY = [
   "<b>Log type aliases:</b> approve, ban, kick, reset, add_wm, edit_wm, del_wm, edit_ig, add_bw, edit_bw, del_bw",
 ].join("\n");
 
-export function truncate(text: string, max: number): string {
-  const clean = text.replace(/\n/g, " ").trim();
-  const chars = Array.from(clean);
-  if (chars.length <= max) return clean;
-  return chars.slice(0, max - 1).join("") + "…";
-}
+export const HELP_TEXT = [
+  "<b>Superteam MY Bot</b>",
+  "",
+  "<b>General</b>",
+  "/help  —  Show this message",
+  "",
+  "<b>Admin only</b>",
+  "/setintroguide <code>&lt;msg&gt;</code>  —  Set the intro guide",
+  "/viewintroguide  —  View the current intro guide",
+  "/logs <code>[type] [count]</code>  —  View recent admin logs",
+  "/logs <code>[type] [start] [end]</code>  —  View logs by date range",
+  "/posthelp  —  Post a pinnable help message to the current chat",
+  "",
+  "<b>Admin menu (DM only)</b>",
+  "Send <code>/start admin</code> to the bot in DM to open the admin panel.",
+  "Manage members, bans, welcome messages, intro guide, stats, and logs.",
+].join("\n");
+
+export const POSTHELP_TEXT =
+  "<b>Superteam MY Bot — Admin Help</b>\n\n" +
+  "<b>DM Admin Menu</b>\n" +
+  "Send <code>/start admin</code> to the bot in DM to open the admin panel.\n\n" +
+  ADMIN_HELP_BODY;
 
 export function backButton(callback: string, label = "Back") {
   return Markup.button.callback(`<< ${label}`, callback);
-}
-
-export function memberLabel(m: Member): string {
-  const name = m.first_name || "Unknown";
-  const username = m.username ? ` (@${m.username})` : "";
-  return `${name}${username}`;
 }
 
 export function formatAction(action: string): string {

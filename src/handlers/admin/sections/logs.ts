@@ -2,11 +2,12 @@ import { Markup } from "telegraf";
 import type { CbCtx } from "../shared";
 import {
   PAGE_SIZE,
-  truncate,
   backButton,
   ACTION_ALIASES,
   formatAction,
 } from "../shared";
+import { truncate } from "../../../utils/format";
+import { resolveUser } from "../../../utils/user";
 import { getLogsPaginated, getLogById, countLogs } from "../../../models/adminLog";
 
 function formatLogLine(log: {
@@ -110,12 +111,17 @@ export async function handleCallback(
       return true;
     }
 
+    const adminLabel = await resolveUser(log.admin_telegram_id);
+
     const lines = [
       `ID: ${log.id}`,
       `Action: ${formatAction(log.action)}`,
-      `Admin: ${log.admin_telegram_id}`,
+      `Admin: ${adminLabel}`,
     ];
-    if (log.target_id) lines.push(`Target: ${log.target_id}`);
+    if (log.target_id) {
+      const targetLabel = await resolveUser(log.target_id);
+      lines.push(`Target: ${targetLabel}`);
+    }
     if (log.details) lines.push(`Details: ${log.details}`);
     lines.push(
       `Date: ${log.created_at.toISOString().replace("T", " ").split(".")[0]}`,

@@ -1,12 +1,8 @@
 import { Markup } from "telegraf";
 import type { CbCtx, TextCtx, AdminAction } from "../shared";
-import {
-  adminState,
-  PAGE_SIZE,
-  truncate,
-  backButton,
-  memberLabel,
-} from "../shared";
+import { adminState, PAGE_SIZE, backButton } from "../shared";
+import { truncate } from "../../../utils/format";
+import { memberLabel } from "../../../utils/user";
 import {
   getMember,
   getPendingMembers,

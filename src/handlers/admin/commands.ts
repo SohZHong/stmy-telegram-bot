@@ -1,6 +1,11 @@
 import { Telegraf } from "telegraf";
 import { isAdmin } from "./auth";
-import { ACTION_ALIASES, ADMIN_HELP_BODY, formatAction } from "./shared";
+import {
+  ACTION_ALIASES,
+  formatAction,
+  HELP_TEXT,
+  POSTHELP_TEXT,
+} from "./shared";
 import { getSetting, setSetting } from "../../models/settings";
 import {
   createAdminLog,
@@ -8,36 +13,17 @@ import {
   getLogsByDateRange,
 } from "../../models/adminLog";
 import type { AdminLogAction, AdminLog } from "../../models/adminLog";
+import { resolveUser } from "../../utils/user";
 
-const HELP_TEXT = [
-  "<b>Superteam MY Bot</b>",
-  "",
-  "<b>General</b>",
-  "/help  —  Show this message",
-  "",
-  "<b>Admin only</b>",
-  "/setintroguide <code>&lt;msg&gt;</code>  —  Set the intro guide",
-  "/viewintroguide  —  View the current intro guide",
-  "/logs <code>[type] [count]</code>  —  View recent admin logs",
-  "/logs <code>[type] [start] [end]</code>  —  View logs by date range",
-  "/posthelp  —  Post a pinnable help message to the current chat",
-  "",
-  "<b>Admin menu (DM only)</b>",
-  "Send <code>/start admin</code> to the bot in DM to open the admin panel.",
-  "Manage members, bans, welcome messages, intro guide, stats, and logs.",
-].join("\n");
-
-const POSTHELP_TEXT =
-  "<b>Superteam MY Bot — Admin Help</b>\n\n" +
-  "<b>DM Admin Menu</b>\n" +
-  "Send <code>/start admin</code> to the bot in DM to open the admin panel.\n\n" +
-  ADMIN_HELP_BODY;
-
-function formatLog(log: AdminLog): string {
+async function formatLog(log: AdminLog): Promise<string> {
   const date = log.created_at.toISOString().replace("T", " ").split(".")[0];
   const action = formatAction(log.action);
-  let line = `[${date}] ${action} by ${log.admin_telegram_id}`;
-  if (log.target_id) line += ` → ${log.target_id}`;
+  const admin = await resolveUser(log.admin_telegram_id);
+  let line = `[${date}] ${action} by ${admin}`;
+  if (log.target_id) {
+    const target = await resolveUser(log.target_id);
+    line += ` → ${target}`;
+  }
   if (log.details) line += ` (${log.details.slice(0, 50)})`;
   return line;
 }
@@ -140,7 +126,7 @@ export function setup(bot: Telegraf): void {
       return ctx.reply("No logs found.");
     }
 
-    const lines = logs.map(formatLog);
+    const lines = await Promise.all(logs.map(formatLog));
     return ctx.reply(lines.join("\n"));
   });
 

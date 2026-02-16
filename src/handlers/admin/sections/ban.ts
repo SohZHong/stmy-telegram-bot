@@ -1,6 +1,8 @@
 import { Markup } from "telegraf";
 import type { CbCtx, TextCtx, AdminAction } from "../shared";
-import { adminState, truncate, backButton, memberLabel } from "../shared";
+import { adminState, backButton } from "../shared";
+import { truncate } from "../../../utils/format";
+import { memberLabel } from "../../../utils/user";
 import { getMember, searchMembers, deleteMember } from "../../../models/member";
 import { config } from "../../../config";
 import { createAdminLog } from "../../../models/adminLog";

@@ -6,6 +6,7 @@ import { getSetting } from "../models/settings";
 import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { postToClosedTopic, unmuteUser } from "../permissions";
 import { getAllBlockedWords } from "../models/blockedWord";
+import { escapeHtml } from "../utils/format";
 
 const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}!";
 
@@ -14,13 +15,6 @@ interface IntroState {
 }
 
 const introState = new Map<number, IntroState>();
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 
 export function setup(bot: Telegraf): void {
   // Handle /start intro deep link in private chats
