@@ -2,6 +2,7 @@ import { Markup } from "telegraf";
 import type { CbCtx, TextCtx, AdminAction } from "../shared";
 import { adminState, backButton } from "../shared";
 import { getSetting, setSetting } from "../../../models/settings";
+import { createAdminLog } from "../../../models/adminLog";
 
 export async function handleCallback(
   ctx: CbCtx,
@@ -54,6 +55,7 @@ export async function handleText(
 
   adminState.delete(userId);
   await setSetting("intro_guide", text, userId);
+  await createAdminLog("edit_intro_guide", userId, null, text.slice(0, 100));
   await ctx.reply(
     "Intro guide updated!",
     Markup.inlineKeyboard([[backButton("a:ig")]]),

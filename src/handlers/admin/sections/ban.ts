@@ -3,6 +3,7 @@ import type { CbCtx, TextCtx, AdminAction } from "../shared";
 import { adminState, truncate, backButton, memberLabel } from "../shared";
 import { getMember, searchMembers, deleteMember } from "../../../models/member";
 import { config } from "../../../config";
+import { createAdminLog } from "../../../models/adminLog";
 
 export async function handleCallback(
   ctx: CbCtx,
@@ -39,12 +40,7 @@ export async function handleCallback(
             `a:ban:ban:${member.telegram_id}`,
           ),
         ],
-        [
-          Markup.button.callback(
-            "Kick",
-            `a:ban:kick:${member.telegram_id}`,
-          ),
-        ],
+        [Markup.button.callback("Kick", `a:ban:kick:${member.telegram_id}`)],
         [backButton("a:main")],
       ]),
     );
@@ -61,6 +57,7 @@ export async function handleCallback(
         { revoke_messages: true },
       );
       await deleteMember(telegramId);
+      await createAdminLog("ban_member", userId, telegramId);
       await ctx.editMessageText(
         `User ${telegramId} banned and messages wiped.`,
         Markup.inlineKeyboard([[backButton("a:main")]]),
@@ -80,6 +77,7 @@ export async function handleCallback(
       await ctx.telegram.banChatMember(config.mainGroupId, telegramId);
       await ctx.telegram.unbanChatMember(config.mainGroupId, telegramId);
       await deleteMember(telegramId);
+      await createAdminLog("kick_member", userId, telegramId);
       await ctx.editMessageText(
         `User ${telegramId} kicked.`,
         Markup.inlineKeyboard([[backButton("a:main")]]),

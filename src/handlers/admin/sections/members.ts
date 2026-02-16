@@ -1,6 +1,12 @@
 import { Markup } from "telegraf";
 import type { CbCtx, TextCtx, AdminAction } from "../shared";
-import { adminState, PAGE_SIZE, truncate, backButton, memberLabel } from "../shared";
+import {
+  adminState,
+  PAGE_SIZE,
+  truncate,
+  backButton,
+  memberLabel,
+} from "../shared";
 import {
   getMember,
   getPendingMembers,
@@ -9,6 +15,7 @@ import {
   markIntroCompleted,
 } from "../../../models/member";
 import { unmuteUser } from "../../../permissions";
+import { createAdminLog } from "../../../models/adminLog";
 
 export async function handleCallback(
   ctx: CbCtx,
@@ -121,6 +128,7 @@ export async function handleCallback(
     } catch {
       // May lack permission
     }
+    await createAdminLog("approve_member", userId, telegramId);
     await ctx.editMessageText(
       `Member ${telegramId} approved and unmuted.`,
       Markup.inlineKeyboard([[backButton("a:mem")]]),

@@ -8,6 +8,7 @@ import {
   updateWelcomeMessage,
   deleteWelcomeMessage,
 } from "../../../models/welcomeMessage";
+import { createAdminLog } from "../../../models/adminLog";
 
 export async function handleCallback(
   ctx: CbCtx,
@@ -124,6 +125,7 @@ export async function handleCallback(
   if (data.startsWith("a:wm:rmc:")) {
     const wmId = parseInt(data.split(":")[3], 10);
     await deleteWelcomeMessage(wmId);
+    await createAdminLog("delete_welcome_message", userId, null, `WM #${wmId}`);
     await ctx.editMessageText(
       "Welcome message deleted.",
       Markup.inlineKeyboard([[backButton("a:wm:list:0")]]),
@@ -142,7 +144,13 @@ export async function handleText(
 ): Promise<boolean> {
   if (state.type === "AWAITING_WM_ADD") {
     adminState.delete(userId);
-    await addWelcomeMessage(text, userId);
+    const wm = await addWelcomeMessage(text, userId);
+    await createAdminLog(
+      "add_welcome_message",
+      userId,
+      null,
+      `WM #${wm.id}: ${text.slice(0, 50)}`,
+    );
     await ctx.reply(
       "Welcome message added!",
       Markup.inlineKeyboard([[backButton("a:wm:list:0")]]),
@@ -154,6 +162,12 @@ export async function handleText(
     const { messageId } = state;
     adminState.delete(userId);
     await updateWelcomeMessage(messageId, text);
+    await createAdminLog(
+      "edit_welcome_message",
+      userId,
+      null,
+      `WM #${messageId}: ${text.slice(0, 50)}`,
+    );
     await ctx.reply(
       "Welcome message updated!",
       Markup.inlineKeyboard([[backButton(`a:wm:v:${messageId}`)]]),
