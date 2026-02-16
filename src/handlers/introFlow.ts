@@ -3,7 +3,10 @@ import { message } from "telegraf/filters";
 import { config } from "../config";
 import { getMember, markIntroCompleted } from "../models/member";
 import { getSetting } from "../models/settings";
+import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { postToClosedTopic, unmuteUser } from "../permissions";
+
+const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}!";
 
 interface IntroState {
   state: "AWAITING_INTRO";
@@ -45,12 +48,12 @@ export function setup(bot: Telegraf): void {
         return;
       }
 
-      const welcomeMsg = await getSetting("welcome_message");
+      const wm = await getRandomWelcomeMessage();
       const introGuide = await getSetting("intro_guide");
       const name = member.first_name || ctx.from.username || "there";
 
       const text =
-        (welcomeMsg ?? "").replace(/\{name\}/g, name) +
+        (wm?.message ?? DEFAULT_WELCOME).replace(/\{name\}/g, name) +
         "\n\n" +
         (introGuide ?? "") +
         "\n\nPlease type your introduction below:";

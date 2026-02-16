@@ -1,7 +1,10 @@
 import { Markup, Telegraf } from "telegraf";
 import { config } from "../config";
 import { getMember, upsertMember } from "../models/member";
+import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { muteUser } from "../permissions";
+
+const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}! Click below to introduce yourself.";
 
 export function setup(bot: Telegraf): void {
   bot.on("new_chat_members", async (ctx) => {
@@ -41,17 +44,19 @@ export function setup(bot: Telegraf): void {
         const name = member.first_name || member.username || "there";
         const deepLink = `https://t.me/${ctx.botInfo.username}?start=intro`;
 
-        await ctx.telegram.sendMessage(
-          config.mainGroupId,
-          `Welcome, [${name}](tg://user?id=${member.id})! Click below to introduce yourself.`,
-          {
-            message_thread_id: config.welcomeTopicId,
-            parse_mode: "Markdown",
-            ...Markup.inlineKeyboard([
-              Markup.button.url("Start Introduction", deepLink),
-            ]),
-          },
+        const wm = await getRandomWelcomeMessage();
+        const welcomeText = (wm?.message ?? DEFAULT_WELCOME).replace(
+          /\{name\}/g,
+          `[${name}](tg://user?id=${member.id})`,
         );
+
+        await ctx.telegram.sendMessage(config.mainGroupId, welcomeText, {
+          message_thread_id: config.welcomeTopicId,
+          parse_mode: "Markdown",
+          ...Markup.inlineKeyboard([
+            Markup.button.url("Start Introduction", deepLink),
+          ]),
+        });
       } catch (err) {
         console.error(
           `Error handling new member ${member.id}:`,
