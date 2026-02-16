@@ -1,13 +1,20 @@
-import { Context, Telegraf } from "telegraf";
+import { Context, Telegram, Telegraf } from "telegraf";
 import { config } from "../config";
 import { getSetting, setSetting } from "../models/settings";
 
-async function isAdmin(ctx: Context): Promise<boolean> {
+export async function isAdmin(ctx: Context): Promise<boolean> {
   if (!ctx.from) return false;
+  return isAdminById(ctx.telegram, ctx.from.id);
+}
+
+export async function isAdminById(
+  telegram: Telegram,
+  userId: number,
+): Promise<boolean> {
   try {
-    const chatMember = await ctx.telegram.getChatMember(
+    const chatMember = await telegram.getChatMember(
       config.mainGroupId,
-      ctx.from.id,
+      userId,
     );
     return (
       chatMember.status === "administrator" || chatMember.status === "creator"
