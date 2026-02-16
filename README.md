@@ -189,8 +189,9 @@ Unrecognized errors fall through and log the full error object.
 
 | Command | Description |
 |---|---|
-| `/setintroguide <message>` | Set the intro guide text |
-| `/viewintroguide` | View the current intro guide |
+| `/help` | List all available commands |
+| `/setintroguide <message>` | Set the intro guide text (admin) |
+| `/viewintroguide` | View the current intro guide (admin) |
 
 Only group admins can use these commands.
 
