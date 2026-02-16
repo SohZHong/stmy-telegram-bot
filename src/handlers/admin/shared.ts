@@ -13,7 +13,8 @@ export type AdminAction =
   | { type: "AWAITING_IG_EDIT" }
   | { type: "AWAITING_BW_ADD" }
   | { type: "AWAITING_BW_EDIT"; wordId: number }
-  | { type: "AWAITING_AG_EDIT" };
+  | { type: "AWAITING_AG_EDIT" }
+  | { type: "AWAITING_ANN" };
 
 // Log display utility
 export const ACTION_ALIASES: Record<string, AdminLogAction> = {
@@ -29,6 +30,7 @@ export const ACTION_ALIASES: Record<string, AdminLogAction> = {
   add_bw: "add_blocked_word",
   edit_bw: "edit_blocked_word",
   del_bw: "delete_blocked_word",
+  announce: "send_announcement",
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -44,6 +46,7 @@ const ACTION_LABELS: Record<string, string> = {
   add_blocked_word: "Add BW",
   edit_blocked_word: "Edit BW",
   delete_blocked_word: "Del BW",
+  send_announcement: "Announce",
 };
 
 export const adminState = new Map<number, AdminAction>();
@@ -73,7 +76,7 @@ export const ADMIN_HELP_BODY = [
   "/adminguide — Post a guide for admins to get started with the bot",
   "/posthelp — Post a pinnable help message",
   "",
-  "<b>Log type aliases:</b> approve, ban, kick, reset, add_wm, edit_wm, del_wm, edit_ig, edit_ag, add_bw, edit_bw, del_bw",
+  "<b>Log type aliases:</b> approve, ban, kick, reset, add_wm, edit_wm, del_wm, edit_ig, edit_ag, add_bw, edit_bw, del_bw, announce",
 ].join("\n");
 
 export const HELP_TEXT = [

@@ -17,6 +17,7 @@ import {
 } from "../../models/adminLog";
 import type { AdminLogAction, AdminLog } from "../../models/adminLog";
 import { resolveUser } from "../../utils/user";
+import { escapeHtml } from "../../utils/format";
 
 async function formatLog(log: AdminLog): Promise<string> {
   const date = log.created_at.toISOString().replace("T", " ").split(".")[0];
@@ -156,7 +157,8 @@ export function setup(bot: Telegraf): void {
       );
     }
 
-    const text = `<b>Bot Announcement</b>\n\n${message}`;
+    const sender = await resolveUser(String(ctx.from.id));
+    const text = `<b>Announcement by ${escapeHtml(sender)}</b>\n\n${message}`;
 
     if (isPreview) {
       return ctx.telegram.sendMessage(ctx.from.id, text, {
@@ -169,7 +171,7 @@ export function setup(bot: Telegraf): void {
     let sent = 0;
     let failed = 0;
     for (const admin of admins) {
-      if (admin.user.is_bot) continue;
+      if (admin.user.is_bot || admin.user.id === ctx.from.id) continue;
       try {
         await ctx.telegram.sendMessage(admin.user.id, text, {
           parse_mode: "HTML",
@@ -179,6 +181,13 @@ export function setup(bot: Telegraf): void {
         failed++;
       }
     }
+
+    await createAdminLog(
+      "send_announcement",
+      ctx.from.id,
+      null,
+      message.slice(0, 100),
+    );
 
     return ctx.reply(
       `Announcement sent to ${sent} admin(s).${failed > 0 ? ` ${failed} failed (admin hasn't started a DM with the bot).` : ""}`,

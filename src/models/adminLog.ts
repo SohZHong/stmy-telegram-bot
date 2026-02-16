@@ -12,7 +12,8 @@ export type AdminLogAction =
   | "reset_intro"
   | "add_blocked_word"
   | "edit_blocked_word"
-  | "delete_blocked_word";
+  | "delete_blocked_word"
+  | "send_announcement";
 
 export interface AdminLog {
   id: number;

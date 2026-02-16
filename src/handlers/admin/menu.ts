@@ -10,6 +10,7 @@ import * as introGuide from "./sections/introGuide";
 import * as stats from "./sections/stats";
 import * as logs from "./sections/logs";
 import * as blockedWords from "./sections/blockedWords";
+import * as announcements from "./sections/announcements";
 import * as adminGuide from "./sections/adminGuide";
 
 const sections: {
@@ -33,6 +34,7 @@ const sections: {
   stats,
   logs,
   blockedWords,
+  announcements,
 ];
 
 const HELP_TEXT = "<b>Admin Menu Help</b>\n\n" + ADMIN_HELP_BODY;
@@ -46,6 +48,7 @@ function mainMenuKeyboard() {
     [Markup.button.callback("Admin Guide", "a:ag")],
     [Markup.button.callback("Stats", "a:stats")],
     [Markup.button.callback("Blocked Words", "a:bw")],
+    [Markup.button.callback("Announcements", "a:ann")],
     [Markup.button.callback("Logs", "a:log")],
     [Markup.button.callback("Help", "a:help")],
   ]);
