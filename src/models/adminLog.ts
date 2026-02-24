@@ -13,7 +13,13 @@ export type AdminLogAction =
   | "add_blocked_word"
   | "edit_blocked_word"
   | "delete_blocked_word"
-  | "send_announcement";
+  | "send_announcement"
+  | "submit_report"
+  | "autoban_report"
+  | "dismiss_report"
+  | "add_report_reason"
+  | "edit_report_reason"
+  | "delete_report_reason";
 
 export interface AdminLog {
   id: number;
