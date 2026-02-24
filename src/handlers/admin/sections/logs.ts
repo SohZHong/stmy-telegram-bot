@@ -49,6 +49,16 @@ export async function handleCallback(
         Markup.button.callback("Del BW", "a:log:list:del_bw:0"),
       ],
       [Markup.button.callback("Announce", "a:log:list:announce:0")],
+      [
+        Markup.button.callback("Report", "a:log:list:report:0"),
+        Markup.button.callback("Auto-ban", "a:log:list:autoban_rpt:0"),
+        Markup.button.callback("Dismiss", "a:log:list:dismiss_rpt:0"),
+      ],
+      [
+        Markup.button.callback("Add RR", "a:log:list:add_rr:0"),
+        Markup.button.callback("Edit RR", "a:log:list:edit_rr:0"),
+        Markup.button.callback("Del RR", "a:log:list:del_rr:0"),
+      ],
       [backButton("a:main")],
     ];
     await ctx.editMessageText(

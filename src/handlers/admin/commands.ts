@@ -1,4 +1,4 @@
-import { Telegraf } from "telegraf";
+import { Markup, Telegraf } from "telegraf";
 import { isAdmin } from "./auth";
 import {
   ACTION_ALIASES,
@@ -194,6 +194,25 @@ export function setup(bot: Telegraf): void {
 
     return ctx.reply(
       `Announcement sent to ${sent} admin(s).${failed > 0 ? ` ${failed} failed (admin hasn't started a DM with the bot).` : ""}`,
+    );
+  });
+
+  bot.command("postreport", async (ctx) => {
+    if (!(await isAdmin(ctx))) {
+      return ctx.reply("Only main group admins can use this command.");
+    }
+
+    const botInfo = await ctx.telegram.getMe();
+    await ctx.reply(
+      "If you see a member violating community guidelines, you can report them privately.",
+      Markup.inlineKeyboard([
+        [
+          Markup.button.url(
+            "Report a Member",
+            `https://t.me/${botInfo.username}?start=report`,
+          ),
+        ],
+      ]),
     );
   });
 

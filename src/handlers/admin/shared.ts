@@ -14,7 +14,13 @@ export type AdminAction =
   | { type: "AWAITING_BW_ADD" }
   | { type: "AWAITING_BW_EDIT"; wordId: number }
   | { type: "AWAITING_AG_EDIT" }
-  | { type: "AWAITING_ANN" };
+  | { type: "AWAITING_ANN" }
+  | { type: "AWAITING_RR_ADD" }
+  | { type: "AWAITING_RR_EDIT"; reasonId: number }
+  | { type: "AWAITING_RPT_ALERT" }
+  | { type: "AWAITING_RPT_AUTOBAN" }
+  | { type: "AWAITING_RPT_ADMIN" }
+  | { type: "AWAITING_RPT_COOLDOWN" };
 
 // Log display utility
 export const ACTION_ALIASES: Record<string, AdminLogAction> = {
@@ -31,6 +37,12 @@ export const ACTION_ALIASES: Record<string, AdminLogAction> = {
   edit_bw: "edit_blocked_word",
   del_bw: "delete_blocked_word",
   announce: "send_announcement",
+  report: "submit_report",
+  autoban_rpt: "autoban_report",
+  dismiss_rpt: "dismiss_report",
+  add_rr: "add_report_reason",
+  edit_rr: "edit_report_reason",
+  del_rr: "delete_report_reason",
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -47,6 +59,12 @@ const ACTION_LABELS: Record<string, string> = {
   edit_blocked_word: "Edit BW",
   delete_blocked_word: "Del BW",
   send_announcement: "Announce",
+  submit_report: "Report",
+  autoban_report: "Auto-ban (Report)",
+  dismiss_report: "Dismiss Report",
+  add_report_reason: "Add RR",
+  edit_report_reason: "Edit RR",
+  delete_report_reason: "Del RR",
 };
 
 export const adminState = new Map<number, AdminAction>();
@@ -63,6 +81,7 @@ export const ADMIN_HELP_BODY = [
   "• <b>Admin Guide</b> — View and edit the admin getting-started guide",
   "• <b>Stats</b> — Member counts and intro completion stats",
   "• <b>Blocked Words</b> — Manage words blocked from intro submissions",
+  "• <b>Reports</b> — View reports, manage report reasons, and configure thresholds",
   "• <b>Logs</b> — Browse admin action logs with filters and pagination",
   "",
   "<b>Group Commands</b>",
@@ -75,8 +94,9 @@ export const ADMIN_HELP_BODY = [
   "/announce preview &lt;msg&gt; — Preview announcement (sent only to you)",
   "/adminguide — Post a guide for admins to get started with the bot",
   "/posthelp — Post a pinnable help message",
+  "/postreport — Post a 'Report a Member' message with deep link button",
   "",
-  "<b>Log type aliases:</b> approve, ban, kick, reset, add_wm, edit_wm, del_wm, edit_ig, edit_ag, add_bw, edit_bw, del_bw, announce",
+  "<b>Log type aliases:</b> approve, ban, kick, reset, add_wm, edit_wm, del_wm, edit_ig, edit_ag, add_bw, edit_bw, del_bw, announce, report, autoban_rpt, dismiss_rpt, add_rr, edit_rr, del_rr",
 ].join("\n");
 
 export const HELP_TEXT = [
@@ -93,6 +113,7 @@ export const HELP_TEXT = [
   "/announce <code>&lt;msg&gt;</code>  —  Broadcast to all admins via DM",
   "/adminguide  —  Post admin getting-started guide",
   "/posthelp  —  Post a pinnable help message to the current chat",
+  "/postreport  —  Post a 'Report a Member' button",
   "",
   "<b>Admin menu (DM only)</b>",
   "Send <code>/start admin</code> to the bot in DM to open the admin panel.",
