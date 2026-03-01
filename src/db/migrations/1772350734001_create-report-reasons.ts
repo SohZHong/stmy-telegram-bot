@@ -3,31 +3,28 @@ import type { MigrationBuilder } from "node-pg-migrate" with {
 };
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
-  pgm.createTable("welcome_messages", {
+  pgm.createTable("report_reasons", {
     id: { type: "serial", primaryKey: true },
-    message: { type: "text", notNull: true },
+    label: { type: "text", notNull: true, unique: true },
     created_by: { type: "bigint" },
     created_at: {
       type: "timestamptz",
       notNull: true,
       default: pgm.func("NOW()"),
     },
-    updated_at: {
-      type: "timestamptz",
-      notNull: true,
-      default: pgm.func("NOW()"),
-    },
   });
 
-  // Migrate existing welcome_message from settings into the new table
+  // Seed default report reasons
   pgm.sql(`
-    INSERT INTO welcome_messages (message, created_by)
-    SELECT value, updated_by
-    FROM settings
-    WHERE key = 'welcome_message'
+    INSERT INTO report_reasons (label) VALUES
+      ('Spam or scam'),
+      ('Harassment or bullying'),
+      ('Inappropriate content'),
+      ('Impersonation'),
+      ('Other')
   `);
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
-  pgm.dropTable("welcome_messages");
+  pgm.dropTable("report_reasons");
 }

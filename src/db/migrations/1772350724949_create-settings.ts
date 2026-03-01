@@ -3,6 +3,19 @@ import type { MigrationBuilder } from "node-pg-migrate" with {
 };
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
+  pgm.createTable("settings", {
+    id: { type: "serial", unique: true },
+    key: { type: "text", primaryKey: true },
+    value: { type: "text", notNull: true },
+    updated_by: { type: "bigint" },
+    updated_at: {
+      type: "timestamptz",
+      notNull: true,
+      default: pgm.func("NOW()"),
+    },
+  });
+
+  // Seed default intro guide
   pgm.sql(`
     INSERT INTO settings (key, value)
     VALUES ('intro_guide', '👋 Welcome to Superteam MY!
@@ -24,5 +37,5 @@ No pressure to be perfect — just be you!')
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
-  pgm.sql(`DELETE FROM settings WHERE key = 'intro_guide'`);
+  pgm.dropTable("settings");
 }
