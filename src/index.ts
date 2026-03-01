@@ -3,7 +3,7 @@ import { config } from "./config";
 import { close } from "./db/database";
 import { runMigrations } from "./db/migrate";
 import { handleStartupError } from "./errors";
-import { setupCommands as setupAdmin, setupMenu as setupAdminMenu } from "./handlers/admin";
+import { setupCommands as setupAdmin, setupMenu as setupAdminMenu, ensureAdminGuide } from "./handlers/admin";
 import { setup as setupReportFlow, ensureReportPost } from "./handlers/reportFlow";
 import { setup as setupIntroFlow } from "./handlers/introFlow";
 import { setup as setupMessageGuard } from "./handlers/messageGuard";
@@ -28,6 +28,7 @@ async function start(): Promise<void> {
   await runMigrations(config.databaseUrl);
   console.log("Migrations complete");
 
+  await ensureAdminGuide(bot.telegram);
   await ensureReportPost(bot.telegram);
 
   bot.launch();

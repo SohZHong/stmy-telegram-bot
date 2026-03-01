@@ -18,6 +18,7 @@ import {
 import type { AdminLogAction, AdminLog } from "../../models/adminLog";
 import { resolveUser } from "../../utils/user";
 import { escapeHtml } from "../../utils/format";
+import { postToClosedTopic } from "../../permissions";
 
 async function formatLog(
   log: AdminLog,
@@ -133,7 +134,9 @@ export function setup(bot: Telegraf): void {
       return ctx.reply("No logs found.");
     }
 
-    const lines = await Promise.all(logs.map((l) => formatLog(l, ctx.telegram)));
+    const lines = await Promise.all(
+      logs.map((l) => formatLog(l, ctx.telegram)),
+    );
     return ctx.reply(lines.join("\n"));
   });
 
@@ -233,11 +236,10 @@ export function setup(bot: Telegraf): void {
     let sent;
     try {
       // Try sending to General topic (thread_id 1)
-      sent = await ctx.telegram.sendMessage(
-        chatId,
-        messageBody.text,
-        { message_thread_id: 1, ...messageBody.keyboard },
-      );
+      sent = await ctx.telegram.sendMessage(chatId, messageBody.text, {
+        message_thread_id: 1,
+        ...messageBody.keyboard,
+      });
     } catch {
       try {
         // Fallback: send without thread_id (works if General is hidden)
@@ -318,4 +320,45 @@ export function setup(bot: Telegraf): void {
 
     await ctx.reply("Admin guide posted and pinned in the admin topic.");
   });
+}
+
+export async function ensureAdminGuide(
+  telegram: import("telegraf").Telegram,
+): Promise<void> {
+  const existingId = await getSetting("admin_guide_message_id");
+  if (existingId) {
+    try {
+      await telegram.pinChatMessage(
+        config.mainGroupId,
+        parseInt(existingId, 10),
+        { disable_notification: true },
+      );
+      return; // existing post still valid
+    } catch {
+      // post deleted or invalid, will re-post
+    }
+  }
+
+  const botInfo = await telegram.getMe();
+  const template = (await getSetting("admin_guide")) || DEFAULT_ADMIN_GUIDE;
+  const guideText = renderAdminGuide(template, botInfo.username!);
+
+  const sent = await postToClosedTopic(telegram, config.adminTopicId, () =>
+    telegram.sendMessage(config.mainGroupId, guideText, {
+      message_thread_id: config.adminTopicId,
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    }),
+  );
+
+  try {
+    await telegram.pinChatMessage(config.mainGroupId, sent.message_id, {
+      disable_notification: true,
+    });
+  } catch {
+    // pin failed, not critical
+  }
+
+  await setSetting("admin_guide_message_id", String(sent.message_id), 0);
+  console.log("Admin guide posted and pinned");
 }

@@ -31,7 +31,7 @@ Mute/unmute is handled by `src/permissions.ts` via Telegram's `restrictChatMembe
 2. A user clicks the button, which opens a DM with the bot via deep link (`t.me/{bot}?start=report`)
 3. The bot verifies the user is a group member, then asks for the target (username, name, or ID)
 4. The user selects a reason from an admin-managed list, optionally adds details, and confirms
-5. The report is recorded. If the pending report count for the target reaches the **alert threshold**, admins are notified via DM. If it reaches the **auto-ban threshold**, the user is automatically banned and all their reports are marked as reviewed
+5. The report is recorded. If the pending report count for the target reaches the **alert threshold**, admins are notified via DM. If it reaches the **auto-ban threshold**, the user is automatically banned and all their reports are marked as reviewed. Group admins are exempt from auto-ban and admins are notified instead for manual review
 
 Configurable settings (via the admin panel): alert threshold, auto-ban threshold, designated admin for notifications, and cooldown between repeat reports.
 
@@ -142,7 +142,7 @@ docker-compose up -d
 | `/posthelp`                   | Post a pinnable help message to the current chat                     |
 | `/postreport`                 | Post and pin a "Report a Member" button in the group's General topic |
 
-Only group admins can use these commands.
+Only group admins can use these commands. Group admins are protected from all moderation actions (ban, kick, intro reset, approve) and the bot will show a warning if an admin tries to moderate another admin.
 
 **Log type aliases:** `approve`, `ban`, `kick`, `reset`, `add_wm`, `edit_wm`, `del_wm`, `edit_ig`, `edit_ag`, `add_bw`, `edit_bw`, `del_bw`, `announce`, `report`, `autoban_rpt`, `dismiss_rpt`, `add_rr`, `edit_rr`, `del_rr`
 
@@ -155,7 +155,7 @@ Open via the deep link `t.me/{bot}?start=admin` (group admins only). Provides an
 - **Welcome Messages** — list, add, edit, delete welcome message templates
 - **Intro Guide** — view and edit the intro guide
 - **Admin Guide** — view and edit the admin getting-started guide
-- **Stats** — member counts, intro completion stats
+- **Stats** — member counts, moderation counts (bans, kicks, approvals), report stats, configuration counts
 - **Blocked Words** — manage words blocked from intro submissions
 - **Announcements** — broadcast to admin DMs or post to announcements topic
 - **Reports** — report reasons CRUD, view/dismiss/ban reported users, configure thresholds
