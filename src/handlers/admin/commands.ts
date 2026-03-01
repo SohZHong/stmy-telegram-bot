@@ -221,14 +221,17 @@ export function setup(bot: Telegraf): void {
     const sent = await ctx.telegram.sendMessage(
       chatId,
       "If you see a member violating community guidelines, you can report them privately.",
-      Markup.inlineKeyboard([
-        [
-          Markup.button.url(
-            "Report a Member",
-            `https://t.me/${botInfo.username}?start=report`,
-          ),
-        ],
-      ]),
+      {
+        message_thread_id: 1, // General topic
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.url(
+              "Report a Member",
+              `https://t.me/${botInfo.username}?start=report`,
+            ),
+          ],
+        ]),
+      },
     );
 
     // Pin the report button and store its message ID

@@ -42,10 +42,18 @@ export async function postToClosedTopic<T>(
   topicId: number,
   sendFn: () => Promise<T>,
 ): Promise<T> {
-  await telegram.reopenForumTopic(config.mainGroupId, topicId);
+  try {
+    await telegram.reopenForumTopic(config.mainGroupId, topicId);
+  } catch {
+    // Topic may already be open
+  }
   try {
     return await sendFn();
   } finally {
-    await telegram.closeForumTopic(config.mainGroupId, topicId);
+    try {
+      await telegram.closeForumTopic(config.mainGroupId, topicId);
+    } catch {
+      // Topic may already be closed
+    }
   }
 }
