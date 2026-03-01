@@ -114,14 +114,17 @@ export function setup(bot: Telegraf): void {
         if (await section.handleCallback(ctx, data, userId)) return;
       }
     } catch (err) {
-      console.error(`Admin menu error:`, (err as Error).message);
+      const msg = (err as Error).message;
+      // Ignore "message is not modified" — happens on double-tap or navigating back to the same screen
+      if (msg.includes("message is not modified")) return;
+      console.error(`Admin menu error:`, msg);
       try {
         await ctx.editMessageText(
-          `Error: ${(err as Error).message}`,
+          `Error: ${msg}`,
           Markup.inlineKeyboard([[backButton("a:main")]]),
         );
       } catch {
-        // editMessageText may fail if message hasn't changed
+        // editMessageText may fail
       }
     }
   });
