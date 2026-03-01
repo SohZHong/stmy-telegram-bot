@@ -11,7 +11,7 @@ import {
   bulkUpdateReportStatus,
   hasRecentReport,
 } from "../models/report";
-import { getSetting } from "../models/settings";
+import { getSetting, setSetting } from "../models/settings";
 import { createAdminLog } from "../models/adminLog";
 
 type ReportState =
@@ -433,4 +433,75 @@ async function showConfirmation(
       ...keyboard,
     });
   }
+}
+
+export async function ensureReportPost(
+  telegram: import("telegraf").Telegram,
+): Promise<void> {
+  console.log("Ensuring report post exists...");
+
+  const existingId = await getSetting("report_post_message_id");
+  if (existingId) {
+    console.log(`Found existing report post ID: ${existingId}, verifying...`);
+    try {
+      await telegram.pinChatMessage(
+        config.mainGroupId,
+        parseInt(existingId, 10),
+        { disable_notification: true },
+      );
+      console.log("Existing report post is still valid");
+      return;
+    } catch (err) {
+      console.log(
+        `Existing report post gone: ${(err as Error).message}, posting new one`,
+      );
+    }
+  }
+
+  const botInfo = await telegram.getMe();
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.url(
+        "Report a Member",
+        `https://t.me/${botInfo.username}?start=report`,
+      ),
+    ],
+  ]);
+  const text =
+    "If you see a member violating community guidelines, you can report them privately.";
+
+  let sent;
+  try {
+    console.log(`Sending report post to General (thread 1) in ${config.mainGroupId}...`);
+    sent = await telegram.sendMessage(config.mainGroupId, text, {
+      message_thread_id: 1,
+      ...keyboard,
+    });
+    console.log(`Sent to General, message_id: ${sent.message_id}`);
+  } catch (err1) {
+    console.log(`General (thread 1) failed: ${(err1 as Error).message}`);
+    try {
+      console.log("Retrying without thread_id...");
+      sent = await telegram.sendMessage(config.mainGroupId, text, keyboard);
+      console.log(`Sent without thread_id, message_id: ${sent.message_id}`);
+    } catch (err2) {
+      console.error(
+        "Failed to post report button:",
+        (err2 as Error).message,
+      );
+      return;
+    }
+  }
+
+  try {
+    await telegram.pinChatMessage(config.mainGroupId, sent.message_id, {
+      disable_notification: true,
+    });
+    console.log("Report post pinned");
+  } catch (err) {
+    console.log(`Pin failed: ${(err as Error).message}`);
+  }
+
+  await setSetting("report_post_message_id", String(sent.message_id), 0);
+  console.log("Report button posted and pinned");
 }

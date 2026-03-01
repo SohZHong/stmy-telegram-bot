@@ -4,7 +4,7 @@ import { close } from "./db/database";
 import { runMigrations } from "./db/migrate";
 import { handleStartupError } from "./errors";
 import { setupCommands as setupAdmin, setupMenu as setupAdminMenu } from "./handlers/admin";
-import { setup as setupReportFlow } from "./handlers/reportFlow";
+import { setup as setupReportFlow, ensureReportPost } from "./handlers/reportFlow";
 import { setup as setupIntroFlow } from "./handlers/introFlow";
 import { setup as setupMessageGuard } from "./handlers/messageGuard";
 import { setup as setupNewMember } from "./handlers/newMember";
@@ -28,7 +28,9 @@ async function start(): Promise<void> {
   await runMigrations(config.databaseUrl);
   console.log("Migrations complete");
 
-  await bot.launch();
+  await ensureReportPost(bot.telegram);
+
+  bot.launch();
   console.log("Bot started");
 }
 

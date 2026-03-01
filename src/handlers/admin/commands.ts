@@ -218,21 +218,40 @@ export function setup(bot: Telegraf): void {
     }
 
     const botInfo = await ctx.telegram.getMe();
-    const sent = await ctx.telegram.sendMessage(
-      chatId,
-      "If you see a member violating community guidelines, you can report them privately.",
-      {
-        message_thread_id: 1, // General topic
-        ...Markup.inlineKeyboard([
-          [
-            Markup.button.url(
-              "Report a Member",
-              `https://t.me/${botInfo.username}?start=report`,
-            ),
-          ],
-        ]),
-      },
-    );
+    const messageBody = {
+      text: "If you see a member violating community guidelines, you can report them privately.",
+      keyboard: Markup.inlineKeyboard([
+        [
+          Markup.button.url(
+            "Report a Member",
+            `https://t.me/${botInfo.username}?start=report`,
+          ),
+        ],
+      ]),
+    };
+
+    let sent;
+    try {
+      // Try sending to General topic (thread_id 1)
+      sent = await ctx.telegram.sendMessage(
+        chatId,
+        messageBody.text,
+        { message_thread_id: 1, ...messageBody.keyboard },
+      );
+    } catch {
+      try {
+        // Fallback: send without thread_id (works if General is hidden)
+        sent = await ctx.telegram.sendMessage(
+          chatId,
+          messageBody.text,
+          messageBody.keyboard,
+        );
+      } catch (err) {
+        return ctx.reply(
+          `Failed to post report button: ${(err as Error).message}`,
+        );
+      }
+    }
 
     // Pin the report button and store its message ID
     try {
