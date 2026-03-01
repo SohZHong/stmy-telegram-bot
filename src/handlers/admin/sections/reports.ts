@@ -442,11 +442,54 @@ export async function handleCallback(
   }
 
   if (data === "a:rpt:cfg:admin") {
-    adminState.set(userId, { type: "AWAITING_RPT_ADMIN" });
-    await ctx.editMessageText(
-      "Enter the Telegram ID of the designated admin to receive report notifications (0 = notify all admins).",
-      Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
+    const admins = await ctx.telegram.getChatAdministrators(
+      config.mainGroupId,
     );
+
+    const rows: ReturnType<typeof Markup.button.callback>[][] = [];
+    for (const admin of admins) {
+      if (admin.user.is_bot) continue;
+      const name = admin.user.username
+        ? `@${admin.user.username}`
+        : admin.user.first_name || String(admin.user.id);
+      rows.push([
+        Markup.button.callback(
+          truncate(name, 35),
+          `a:rpt:cfg:admin:${admin.user.id}`,
+        ),
+      ]);
+    }
+    rows.push([
+      Markup.button.callback("Clear (notify all admins)", "a:rpt:cfg:admin:0"),
+    ]);
+    rows.push([backButton("a:rpt:cfg")]);
+
+    await ctx.editMessageText(
+      "Select the admin to receive report notifications, or clear to notify all admins.",
+      Markup.inlineKeyboard(rows),
+    );
+    return true;
+  }
+
+  if (data.startsWith("a:rpt:cfg:admin:")) {
+    const targetId = parseInt(data.split(":")[4], 10);
+    if (targetId === 0) {
+      await setSetting("report_designated_admin", "0", userId);
+      await ctx.editMessageText(
+        "Designated admin cleared. All admins will be notified.",
+        Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
+      );
+    } else {
+      await setSetting("report_designated_admin", String(targetId), userId);
+      const label = await resolveUser(String(targetId), ctx.telegram);
+      await ctx.editMessageText(
+        `Designated admin set to ${escapeHtml(label)} (${targetId}).`,
+        {
+          parse_mode: "HTML",
+          ...Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
+        },
+      );
+    }
     return true;
   }
 
