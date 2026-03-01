@@ -438,23 +438,17 @@ async function showConfirmation(
 export async function ensureReportPost(
   telegram: import("telegraf").Telegram,
 ): Promise<void> {
-  console.log("Ensuring report post exists...");
-
   const existingId = await getSetting("report_post_message_id");
   if (existingId) {
-    console.log(`Found existing report post ID: ${existingId}, verifying...`);
     try {
       await telegram.pinChatMessage(
         config.mainGroupId,
         parseInt(existingId, 10),
         { disable_notification: true },
       );
-      console.log("Existing report post is still valid");
-      return;
-    } catch (err) {
-      console.log(
-        `Existing report post gone: ${(err as Error).message}, posting new one`,
-      );
+      return; // existing post still valid
+    } catch {
+      // post deleted or invalid, will re-post
     }
   }
 
@@ -472,23 +466,15 @@ export async function ensureReportPost(
 
   let sent;
   try {
-    console.log(`Sending report post to General (thread 1) in ${config.mainGroupId}...`);
     sent = await telegram.sendMessage(config.mainGroupId, text, {
       message_thread_id: 1,
       ...keyboard,
     });
-    console.log(`Sent to General, message_id: ${sent.message_id}`);
-  } catch (err1) {
-    console.log(`General (thread 1) failed: ${(err1 as Error).message}`);
+  } catch {
     try {
-      console.log("Retrying without thread_id...");
       sent = await telegram.sendMessage(config.mainGroupId, text, keyboard);
-      console.log(`Sent without thread_id, message_id: ${sent.message_id}`);
-    } catch (err2) {
-      console.error(
-        "Failed to post report button:",
-        (err2 as Error).message,
-      );
+    } catch (err) {
+      console.error("Failed to post report button:", (err as Error).message);
       return;
     }
   }
@@ -497,9 +483,8 @@ export async function ensureReportPost(
     await telegram.pinChatMessage(config.mainGroupId, sent.message_id, {
       disable_notification: true,
     });
-    console.log("Report post pinned");
-  } catch (err) {
-    console.log(`Pin failed: ${(err as Error).message}`);
+  } catch {
+    // pin failed, not critical
   }
 
   await setSetting("report_post_message_id", String(sent.message_id), 0);

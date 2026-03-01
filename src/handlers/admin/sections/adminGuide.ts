@@ -11,7 +11,7 @@ export async function handleCallback(
 ): Promise<boolean> {
   if (data === "a:ag") {
     await ctx.editMessageText(
-      "Admin Guide",
+      "Admin Guide\n\nThe admin guide is posted and pinned in the admin topic via /adminguide. Edit the template here, then re-run the command to update.",
       Markup.inlineKeyboard([
         [Markup.button.callback("View Current", "a:ag:view")],
         [Markup.button.callback("Edit", "a:ag:edit")],

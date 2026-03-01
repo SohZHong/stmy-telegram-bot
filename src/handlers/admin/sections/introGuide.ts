@@ -11,7 +11,7 @@ export async function handleCallback(
 ): Promise<boolean> {
   if (data === "a:ig") {
     await ctx.editMessageText(
-      "Intro Guide",
+      "Intro Guide\n\nThe intro guide is shown to new members when they start the introduction flow in DM. Use it to tell them what to include in their introduction.",
       Markup.inlineKeyboard([
         [Markup.button.callback("View Current", "a:ig:view")],
         [Markup.button.callback("Edit", "a:ig:edit")],

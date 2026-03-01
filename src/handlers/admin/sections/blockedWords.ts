@@ -19,7 +19,7 @@ export async function handleCallback(
   if (data === "a:bw") {
     adminState.delete(userId);
     await ctx.editMessageText(
-      "Blocked Words",
+      "Blocked Words\n\nWords or phrases that are automatically rejected from member introductions. Matched case-insensitively on word boundaries.",
       Markup.inlineKeyboard([
         [Markup.button.callback("List All", "a:bw:list:0")],
         [Markup.button.callback("Add New", "a:bw:add")],

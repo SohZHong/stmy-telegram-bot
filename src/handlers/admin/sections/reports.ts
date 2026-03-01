@@ -32,7 +32,7 @@ export async function handleCallback(
   if (data === "a:rpt") {
     adminState.delete(userId);
     await ctx.editMessageText(
-      "Reports",
+      "Reports\n\nManage user reports. Configure the reasons members can choose from, review pending reports, and set alert/auto-ban thresholds.",
       Markup.inlineKeyboard([
         [Markup.button.callback("Report Reasons", "a:rpt:reasons")],
         [Markup.button.callback("View Reports", "a:rpt:view")],

@@ -19,7 +19,7 @@ export async function handleCallback(
   if (data === "a:wm") {
     adminState.delete(userId);
     await ctx.editMessageText(
-      "Welcome Messages",
+      "Welcome Messages\n\nManage the welcome message templates sent to new members. A random template is chosen each time. Use {name} as a placeholder for the member's name.",
       Markup.inlineKeyboard([
         [Markup.button.callback("List All", "a:wm:list:0")],
         [Markup.button.callback("Add New", "a:wm:add")],

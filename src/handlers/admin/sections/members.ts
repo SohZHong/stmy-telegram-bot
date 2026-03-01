@@ -22,7 +22,7 @@ export async function handleCallback(
   if (data === "a:mem") {
     adminState.delete(userId);
     await ctx.editMessageText(
-      "Members",
+      "Members\n\nView pending members awaiting introduction, search for any member, or approve them manually.",
       Markup.inlineKeyboard([
         [Markup.button.callback("List Pending", "a:mem:pend:0")],
         [Markup.button.callback("Search", "a:mem:find")],
