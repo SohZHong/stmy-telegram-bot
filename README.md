@@ -9,6 +9,8 @@ Telegram onboarding and moderation bot for Superteam MY. Automatically mutes new
 - **Member reporting** — group members can privately report others via DM; configurable alert and auto-ban thresholds
 - **Admin panel** — full DM-based inline-button menu for managing members, bans, welcome messages, intro/admin guides, announcements, reports, stats, and logs
 - **Announcements** — broadcast messages to admin DMs or post to a dedicated announcements topic
+- **Auto-setup on startup** — admin guide and report button are automatically posted and pinned on first boot
+- **Late bot addition** — existing group members are automatically registered when they first send a message
 - **Action logging** — all admin actions are logged and browsable with filters
 
 ## How it works
@@ -23,11 +25,11 @@ Telegram onboarding and moderation bot for Superteam MY. Automatically mutes new
 6. The bot posts the formatted introduction in the **Introduction topic** on their behalf, marks them as introduced, and **unmutes** them
 7. The user can now post freely in all group topics
 
-Mute/unmute is handled by `src/permissions.ts` via Telegram's `restrictChatMember` API. The messageGuard acts as a secondary layer, deleting messages from non-introduced users and sending a rate-limited DM reminder. To allow non-introduced users to chat in specific topics (e.g. Welcome, Introduction), configure those topics as open in Telegram's group admin settings.
+Mute/unmute is handled by `src/permissions.ts` via Telegram's `restrictChatMember` API. The messageGuard acts as a secondary layer, deleting messages from non-introduced users and sending a rate-limited DM reminder. If the bot is added to an existing group, members who were already in the group are automatically registered with their intro marked as complete when they first send a message, no action required from existing members.
 
 ### Reporting
 
-1. An admin posts a "Report a Member" button in the group via `/postreport` (posted to General topic and pinned)
+1. The bot automatically posts and pins a "Report a Member" button in the General topic on startup (can also be manually re-posted via `/postreport`)
 2. A user clicks the button, which opens a DM with the bot via deep link (`t.me/{bot}?start=report`)
 3. The bot verifies the user is a group member, then asks for the target (username, name, or ID)
 4. The user selects a reason from an admin-managed list, optionally adds details, and confirms
@@ -59,7 +61,7 @@ src/
     newMember.ts           # Listens for new_chat_members — posts welcome button in Welcome topic
     introFlow.ts           # DM-based intro collection (/start intro deep link)
     reportFlow.ts          # DM-based report flow (/start report deep link)
-    messageGuard.ts        # Deletes messages from non-introduced users, sends DM reminder
+    messageGuard.ts        # Blocks non-introduced users; auto-registers existing members
     admin/
       index.ts             # Re-exports setupCommands, setupMenu, isAdmin, isAdminById
       auth.ts              # isAdmin, isAdminById helpers
@@ -138,9 +140,9 @@ docker-compose up -d
 | `/logs [type] [start] [end]`  | View logs by date range                                              |
 | `/announce <message>`         | Broadcast announcement to all admins via DM                          |
 | `/announce preview <message>` | Preview announcement (sent only to you)                              |
-| `/adminguide`                 | Post and pin admin getting-started guide in the admin topic          |
+| `/adminguide`                 | Re-post and pin admin guide in admin topic (auto-posted on startup)  |
 | `/posthelp`                   | Post a pinnable help message to the current chat                     |
-| `/postreport`                 | Post and pin a "Report a Member" button in the group's General topic |
+| `/postreport`                 | Re-post and pin report button in General topic (auto-posted on startup) |
 
 Only group admins can use these commands. Group admins are protected from all moderation actions (ban, kick, intro reset, approve) and the bot will show a warning if an admin tries to moderate another admin.
 
