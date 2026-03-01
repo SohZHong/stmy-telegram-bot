@@ -89,6 +89,7 @@ pm2 startup
 - **Single instance only** — Telegram's long-polling API only allows one active connection per bot token. Running multiple instances will cause `409 Conflict` errors. Do not scale horizontally.
 - **Graceful shutdown** — The bot handles `SIGINT` and `SIGTERM` to stop polling and close the database pool cleanly. Docker Compose sends `SIGTERM` on `docker-compose stop`.
 - **Migrations** — Run automatically on every startup via `node-pg-migrate`. Already-applied migrations are skipped. Never edit a migration that has already been deployed; create a new one instead.
+- **Auto-setup** — On first boot, the bot automatically posts and pins the admin guide (in the Admin topic) and the report button (in General). On subsequent restarts, it verifies these posts still exist and re-posts if they were deleted.
 - **No external state** — All persistent state is in PostgreSQL. In-memory state (admin menu state, report flow state) is ephemeral and reset on restart. Users will need to re-enter any in-progress flows after a bot restart.
 
 ## Database

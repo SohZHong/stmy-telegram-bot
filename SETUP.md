@@ -122,11 +122,11 @@ This starts the bot with hot-reload via `tsx --watch`. Migrations run automatica
 
 ## 8. Verify it works
 
-1. Open a DM with your bot on Telegram
-2. Send `/start admin` — you should see the admin menu
-3. In the group, add a new member (or have someone join) — they should be muted and see a welcome button
-4. Run `/postreport` in the group — a pinned "Report a Member" button should appear
-5. Run `/adminguide` in the group — the admin guide should be posted and pinned in the admin topic
+1. Check the bot logs — you should see "Migrations complete", "Admin guide posted and pinned", "Report button posted and pinned", and "Bot started"
+2. Verify the admin guide is pinned in the **Admin** topic and the report button is pinned in **General**
+3. Open a DM with your bot on Telegram
+4. Send `/start admin` — you should see the admin menu
+5. In the group, add a new member (or have someone join) — they should be muted and see a welcome button in the Welcome topic
 
 ## Running migrations manually
 
@@ -170,3 +170,11 @@ npx tsc --noEmit
 
 - Check that PostgreSQL is running: `docker-compose ps`
 - Verify `DATABASE_URL` matches your database credentials
+
+### Migration ordering error
+
+If you see `Not run migration ... is preceding already run migration`, the database has stale migration records from a previous schema. Reset the database:
+
+```bash
+docker compose down -v && docker compose up -d
+```
