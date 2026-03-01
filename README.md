@@ -244,7 +244,8 @@ Unrecognized errors fall through and log the full error object.
    setupMyHandler(bot);
    ```
 
-> **Important:** `bot.launch()` returns a promise that resolves when the bot **stops**, not when it starts. Any startup tasks that need to make Telegram API calls (e.g. posting or pinning a message on boot) must run **before** `bot.launch()`. Code placed after `await bot.launch()` will never execute while the bot is running.
+>[!Important]
+>`bot.launch()` returns a promise that resolves when the bot **stops**, not when it starts. Any startup tasks that need to make Telegram API calls (e.g. posting or pinning a message on boot) must run **before** `bot.launch()`. Code placed after `await bot.launch()` will never execute while the bot is running.
 
 ### Adding a new admin menu section
 
