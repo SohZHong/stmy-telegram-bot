@@ -40,7 +40,8 @@ npm install
    - Manage topics (to open/close topics for posting)
    - Restrict members (to mute/unmute)
 
-> **Note:** The bot detects admins dynamically via the Telegram API — there is no admin list to maintain. When you promote someone to admin in the group, they automatically gain access to the bot's admin commands and DM menu. Likewise, demoting them revokes access immediately.
+>[!Note]
+> The bot detects admins dynamically via the Telegram API — there is no admin list to maintain. When you promote someone to admin in the group, they automatically gain access to the bot's admin commands and DM menu. Likewise, demoting them revokes access immediately.
 
 ## 4. Get the required IDs
 
