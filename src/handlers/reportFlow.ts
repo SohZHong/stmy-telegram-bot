@@ -13,6 +13,7 @@ import {
 } from "../models/report";
 import { getSetting, setSetting } from "../models/settings";
 import { createAdminLog } from "../models/adminLog";
+import { isAdminById } from "./admin/auth";
 
 type ReportState =
   | { step: "AWAITING_TARGET" }
@@ -212,7 +213,14 @@ export function setup(bot: Telegraf): void {
         );
 
         if (autobanThreshold > 0 && pendingCount >= autobanThreshold) {
-          // Auto-ban
+          // Skip auto-ban for admins
+          if (await isAdminById(ctx.telegram, targetId)) {
+            await notifyAdmins(
+              ctx.telegram,
+              `<b>Report Alert</b>\n\nUser (ID: ${targetId}) has ${pendingCount} pending report(s) and hit the auto-ban threshold, but is a group admin. Manual review required.`,
+            );
+            return;
+          }
           try {
             await ctx.telegram.banChatMember(
               config.mainGroupId,

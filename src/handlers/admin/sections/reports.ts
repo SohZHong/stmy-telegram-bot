@@ -22,6 +22,7 @@ import { getSetting, setSetting } from "../../../models/settings";
 import { createAdminLog } from "../../../models/adminLog";
 import { deleteMember } from "../../../models/member";
 import { config } from "../../../config";
+import { isAdminById } from "../auth";
 
 export async function handleCallback(
   ctx: CbCtx,
@@ -368,6 +369,13 @@ export async function handleCallback(
   // Ban user from reports: a:rpt:view:ban:ID
   if (data.startsWith("a:rpt:view:ban:")) {
     const targetId = parseInt(data.split(":")[4], 10);
+    if (await isAdminById(ctx.telegram, targetId)) {
+      await ctx.editMessageText(
+        "This user is a group admin and cannot be banned.",
+        Markup.inlineKeyboard([[backButton("a:rpt:view")]]),
+      );
+      return true;
+    }
     try {
       await ctx.telegram.banChatMember(
         config.mainGroupId,

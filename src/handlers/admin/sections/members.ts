@@ -13,6 +13,7 @@ import {
 } from "../../../models/member";
 import { muteUser, unmuteUser } from "../../../permissions";
 import { createAdminLog } from "../../../models/adminLog";
+import { isAdminById } from "../auth";
 
 export async function handleCallback(
   ctx: CbCtx,
@@ -126,6 +127,13 @@ export async function handleCallback(
 
   if (data.startsWith("a:mem:apr:")) {
     const telegramId = parseInt(data.split(":")[3], 10);
+    if (await isAdminById(ctx.telegram, telegramId)) {
+      await ctx.editMessageText(
+        "This user is a group admin. Their permissions are managed by Telegram, not the intro system.",
+        Markup.inlineKeyboard([[backButton("a:mem")]]),
+      );
+      return true;
+    }
     await markIntroCompleted(telegramId);
     try {
       await unmuteUser(ctx.telegram, telegramId);
@@ -142,6 +150,13 @@ export async function handleCallback(
 
   if (data.startsWith("a:mem:rst:")) {
     const telegramId = parseInt(data.split(":")[3], 10);
+    if (await isAdminById(ctx.telegram, telegramId)) {
+      await ctx.editMessageText(
+        "This user is a group admin. Their intro status cannot be reset.",
+        Markup.inlineKeyboard([[backButton(`a:mem:v:${telegramId}`)]]),
+      );
+      return true;
+    }
     await resetIntroStatus(telegramId);
     try {
       await muteUser(ctx.telegram, telegramId);

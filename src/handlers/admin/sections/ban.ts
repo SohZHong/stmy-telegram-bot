@@ -6,6 +6,7 @@ import { memberLabel } from "../../../utils/user";
 import { getMember, searchMembers, deleteMember } from "../../../models/member";
 import { config } from "../../../config";
 import { createAdminLog } from "../../../models/adminLog";
+import { isAdminById } from "../auth";
 
 export async function handleCallback(
   ctx: CbCtx,
@@ -51,6 +52,13 @@ export async function handleCallback(
 
   if (data.startsWith("a:ban:ban:")) {
     const telegramId = parseInt(data.split(":")[3], 10);
+    if (await isAdminById(ctx.telegram, telegramId)) {
+      await ctx.editMessageText(
+        "This user is a group admin and cannot be banned.",
+        Markup.inlineKeyboard([[backButton("a:main")]]),
+      );
+      return true;
+    }
     try {
       await ctx.telegram.banChatMember(
         config.mainGroupId,
@@ -75,6 +83,13 @@ export async function handleCallback(
 
   if (data.startsWith("a:ban:kick:")) {
     const telegramId = parseInt(data.split(":")[3], 10);
+    if (await isAdminById(ctx.telegram, telegramId)) {
+      await ctx.editMessageText(
+        "This user is a group admin and cannot be kicked.",
+        Markup.inlineKeyboard([[backButton("a:main")]]),
+      );
+      return true;
+    }
     try {
       await ctx.telegram.banChatMember(config.mainGroupId, telegramId);
       await ctx.telegram.unbanChatMember(config.mainGroupId, telegramId);
