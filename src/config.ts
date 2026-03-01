@@ -22,5 +22,8 @@ export const config = {
   introTopicId: Number(process.env.INTRO_TOPIC_ID),
   welcomeTopicId: Number(process.env.WELCOME_TOPIC_ID),
   adminTopicId: Number(process.env.ADMIN_TOPIC_ID),
+  announcementsTopicId: process.env.ANNOUNCEMENTS_TOPIC_ID
+    ? Number(process.env.ANNOUNCEMENTS_TOPIC_ID)
+    : null,
   databaseUrl: process.env.DATABASE_URL!,
 };

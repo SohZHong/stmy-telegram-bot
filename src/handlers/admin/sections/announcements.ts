@@ -3,6 +3,7 @@ import type { CbCtx, TextCtx, AdminAction } from "../shared";
 import { adminState, backButton } from "../shared";
 import { config } from "../../../config";
 import { createAdminLog } from "../../../models/adminLog";
+import { postToClosedTopic } from "../../../permissions";
 
 const pendingAnnouncement = new Map<number, string>();
 const pendingSender = new Map<number, string>();
@@ -16,8 +17,13 @@ export async function handleCallback(
     adminState.delete(userId);
     pendingAnnouncement.delete(userId);
     pendingSender.delete(userId);
+
+    const desc = config.announcementsTopicId
+      ? "Broadcast a message to all group admins via DM, or post it to the announcements topic."
+      : "Broadcast a message to all group admins via DM.";
+
     await ctx.editMessageText(
-      "Announcements\n\nBroadcast a message to all group admins via DM.",
+      `Announcements\n\n${desc}`,
       Markup.inlineKeyboard([
         [Markup.button.callback("New Announcement", "a:ann:new")],
         [backButton("a:main")],
@@ -88,6 +94,60 @@ export async function handleCallback(
     return true;
   }
 
+  if (data === "a:ann:post") {
+    const message = pendingAnnouncement.get(userId);
+    if (!message) {
+      await ctx.editMessageText(
+        "No pending announcement found.",
+        Markup.inlineKeyboard([[backButton("a:ann")]]),
+      );
+      return true;
+    }
+
+    if (!config.announcementsTopicId) {
+      await ctx.editMessageText(
+        "Announcements topic is not configured.",
+        Markup.inlineKeyboard([[backButton("a:ann")]]),
+      );
+      return true;
+    }
+
+    pendingAnnouncement.delete(userId);
+    const sender = pendingSender.get(userId) ?? String(userId);
+    pendingSender.delete(userId);
+    const text = `<b>Announcement by ${sender}</b>\n\n${message}`;
+
+    try {
+      await postToClosedTopic(
+        ctx.telegram,
+        config.announcementsTopicId,
+        () =>
+          ctx.telegram.sendMessage(config.mainGroupId, text, {
+            message_thread_id: config.announcementsTopicId!,
+            parse_mode: "HTML",
+          }),
+      );
+
+      await createAdminLog(
+        "send_announcement",
+        userId,
+        null,
+        `[topic] ${message.slice(0, 90)}`,
+      );
+
+      await ctx.editMessageText(
+        "Announcement posted to the announcements topic.",
+        Markup.inlineKeyboard([[backButton("a:ann")]]),
+      );
+    } catch (err) {
+      await ctx.editMessageText(
+        `Failed to post: ${(err as Error).message}`,
+        Markup.inlineKeyboard([[backButton("a:ann")]]),
+      );
+    }
+    return true;
+  }
+
   if (data === "a:ann:cancel") {
     pendingAnnouncement.delete(userId);
     pendingSender.delete(userId);
@@ -116,14 +176,21 @@ export async function handleText(
   const sender = from.username ? `@${from.username}` : from.first_name || "Unknown";
   pendingSender.set(userId, sender);
 
+  const buttons: ReturnType<typeof Markup.button.callback>[][] = [
+    [Markup.button.callback("Broadcast to Admin DMs", "a:ann:confirm")],
+  ];
+  if (config.announcementsTopicId) {
+    buttons.push([
+      Markup.button.callback("Post to Announcements Topic", "a:ann:post"),
+    ]);
+  }
+  buttons.push([Markup.button.callback("Cancel", "a:ann:cancel")]);
+
   await ctx.reply(
     `<b>Preview</b>\n\n<b>Announcement by ${sender}</b>\n\n${text}`,
     {
       parse_mode: "HTML",
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback("Confirm & Send", "a:ann:confirm")],
-        [Markup.button.callback("Cancel", "a:ann:cancel")],
-      ]),
+      ...Markup.inlineKeyboard(buttons),
     },
   );
   return true;

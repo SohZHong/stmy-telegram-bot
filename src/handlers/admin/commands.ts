@@ -202,8 +202,24 @@ export function setup(bot: Telegraf): void {
       return ctx.reply("Only main group admins can use this command.");
     }
 
+    const chatId = config.mainGroupId;
+
+    // Unpin previous report post if one exists
+    const prevMessageId = await getSetting("report_post_message_id");
+    if (prevMessageId) {
+      try {
+        await ctx.telegram.unpinChatMessage(
+          chatId,
+          parseInt(prevMessageId, 10),
+        );
+      } catch {
+        // Old message may have been deleted
+      }
+    }
+
     const botInfo = await ctx.telegram.getMe();
-    await ctx.reply(
+    const sent = await ctx.telegram.sendMessage(
+      chatId,
       "If you see a member violating community guidelines, you can report them privately.",
       Markup.inlineKeyboard([
         [
@@ -214,6 +230,23 @@ export function setup(bot: Telegraf): void {
         ],
       ]),
     );
+
+    // Pin the report button and store its message ID
+    try {
+      await ctx.telegram.pinChatMessage(chatId, sent.message_id, {
+        disable_notification: true,
+      });
+    } catch {
+      // Bot may lack pin permissions
+    }
+
+    await setSetting(
+      "report_post_message_id",
+      String(sent.message_id),
+      ctx.from.id,
+    );
+
+    await ctx.reply("Report button posted and pinned in the group.");
   });
 
   bot.command("adminguide", async (ctx) => {
