@@ -26,4 +26,6 @@ export const config = {
     ? Number(process.env.ANNOUNCEMENTS_TOPIC_ID)
     : null,
   databaseUrl: process.env.DATABASE_URL!,
+  openaiApiKey: process.env.OPENAI_API_KEY || "",
+  picHandles: process.env.PIC_HANDLES || "",
 };

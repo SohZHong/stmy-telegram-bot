@@ -7,6 +7,7 @@ import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { postToClosedTopic, unmuteUser } from "../permissions";
 import { getAllBlockedWords } from "../models/blockedWord";
 import { escapeHtml } from "../utils/format";
+import { validateIntro } from "../services/llm";
 
 const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}!";
 
@@ -98,6 +99,25 @@ export function setup(bot: Telegraf): void {
         "Your introduction contains content that is not allowed. Please revise and try again.",
       );
       return;
+    }
+
+    // LLM validation (if OpenAI is configured)
+    if (config.openaiApiKey) {
+      try {
+        const validation = await validateIntro(text);
+        if (!validation.valid) {
+          await ctx.reply(
+            "Your introduction doesn't seem meaningful enough. Please write a genuine introduction about yourself so the community can get to know you!",
+          );
+          return;
+        }
+      } catch (err) {
+        console.error(
+          `LLM intro validation error for user ${userId}:`,
+          (err as Error).message,
+        );
+        // On LLM error, allow the intro through (fail open)
+      }
     }
 
     try {

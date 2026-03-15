@@ -20,7 +20,8 @@ export type AdminAction =
   | { type: "AWAITING_RPT_ALERT" }
   | { type: "AWAITING_RPT_AUTOBAN" }
   | { type: "AWAITING_RPT_ADMIN" }
-  | { type: "AWAITING_RPT_COOLDOWN" };
+  | { type: "AWAITING_RPT_COOLDOWN" }
+  | { type: "AWAITING_MAI_Q" };
 
 // Log display utility
 export const ACTION_ALIASES: Record<string, AdminLogAction> = {
