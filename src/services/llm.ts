@@ -22,19 +22,25 @@ export async function validateIntro(
     messages: [
       {
         role: "user",
-        content: `You are a strict verification assistant for a community group. A new member submitted this introduction:
+        content: `You are a strict verification assistant for a community group. A new member was asked to introduce themselves with this format:
+
+• Who are you & what do you do?
+• Where are you based?
+• One fun fact about you
+• How are you looking to contribute to Superteam MY?
+
+They submitted this introduction:
 
 "${text}"
 
-Determine if this introduction is legitimate and well-written. It is NOT legitimate if:
-- It contains ANY random gibberish or keyboard smashing (e.g. "asdfhjkl", "uoashfoa", "ggvyjbbcguj")
-- It contains nonsense words mixed with real words
-- It is dismissive (e.g. "idk", "whatever", "no", "n/a", "test")
-- It is obviously trolling or spam
-- It has no meaningful content about the person
-- It is mostly filler or low-effort text padded to meet length requirements
+Determine if this introduction is legitimate. It is NOT valid if:
+- It contains random gibberish or keyboard smashing
+- It is dismissive or low-effort (e.g. "idk", "whatever", "i am handsome", "hi i'm X")
+- It is trolling or spam
+- It does NOT meaningfully answer at least 2-3 of the required questions above
+- It is too short or vague to actually tell the community about the person
 
-A valid introduction should be coherent, readable, and genuinely tell the community about the person. Be strict — if any part looks like gibberish or nonsense, reject it.
+A valid introduction should genuinely answer the intro format questions — who they are, what they do, where they're based, and/or how they want to contribute. One-liners or jokes without substance should be rejected.
 
 Respond in JSON format:
 {"valid": true/false, "reason": "brief explanation"}`,
