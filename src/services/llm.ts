@@ -22,17 +22,19 @@ export async function validateIntro(
     messages: [
       {
         role: "user",
-        content: `You are a verification assistant for a community group. A new member submitted this introduction:
+        content: `You are a strict verification assistant for a community group. A new member submitted this introduction:
 
 "${text}"
 
-Determine if this introduction is legitimate. It is NOT legitimate if it is:
-- Random gibberish (e.g. "asdfhjkl", "uoashfoa")
-- Completely dismissive (e.g. "idk", "whatever", "no", "n/a", "test")
-- Obviously trolling or spam
-- Has no meaningful content about the person
+Determine if this introduction is legitimate and well-written. It is NOT legitimate if:
+- It contains ANY random gibberish or keyboard smashing (e.g. "asdfhjkl", "uoashfoa", "ggvyjbbcguj")
+- It contains nonsense words mixed with real words
+- It is dismissive (e.g. "idk", "whatever", "no", "n/a", "test")
+- It is obviously trolling or spam
+- It has no meaningful content about the person
+- It is mostly filler or low-effort text padded to meet length requirements
 
-It IS legitimate even if brief, as long as it actually introduces the person.
+A valid introduction should be coherent, readable, and genuinely tell the community about the person. Be strict — if any part looks like gibberish or nonsense, reject it.
 
 Respond in JSON format:
 {"valid": true/false, "reason": "brief explanation"}`,
@@ -78,7 +80,14 @@ export async function isContactQuery(messageText: string): Promise<boolean> {
     messages: [
       {
         role: "user",
-        content: `Determine if this message is asking about who to contact, who is in charge, who is the point of contact, who to reach out to, or who is responsible for the community/organization (Superteam MY or STMY).
+        content: `Is this message asking about who to contact, who to reach out to, who is in charge, or who is the point of contact for anything related to the community or organization?
+
+Examples that should be "yes":
+- "who should I contact at superteam?"
+- "who is in charge here?"
+- "who do I reach out to?"
+- "who is the poc?"
+- "who can I talk to about this?"
 
 Message: "${messageText}"
 

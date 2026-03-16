@@ -5,11 +5,13 @@ import { truncate } from "../../../utils/format";
 import { memberLabel } from "../../../utils/user";
 import {
   getMember,
+  getAllMembers,
   getPendingMembers,
   countPendingMembers,
   searchMembers,
   markIntroCompleted,
   resetIntroStatus,
+  deleteMember,
 } from "../../../models/member";
 import { muteUser, unmuteUser } from "../../../permissions";
 import { createAdminLog } from "../../../models/adminLog";
@@ -25,10 +27,56 @@ export async function handleCallback(
     await ctx.editMessageText(
       "Members\n\nView pending members awaiting introduction, search for any member, or approve them manually.",
       Markup.inlineKeyboard([
+        [Markup.button.callback("List All", "a:mem:all:0")],
         [Markup.button.callback("List Pending", "a:mem:pend:0")],
         [Markup.button.callback("Search", "a:mem:find")],
         [backButton("a:main")],
       ]),
+    );
+    return true;
+  }
+
+  if (data.startsWith("a:mem:all:")) {
+    const page = parseInt(data.split(":")[3], 10);
+    const all = await getAllMembers();
+    const total = all.length;
+
+    if (total === 0) {
+      await ctx.editMessageText(
+        "No members yet.",
+        Markup.inlineKeyboard([[backButton("a:mem")]]),
+      );
+      return true;
+    }
+
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const offset = page * PAGE_SIZE;
+    const pageMembers = all.slice(offset, offset + PAGE_SIZE);
+
+    const rows = pageMembers.map((m) => {
+      const nsTag = m.is_ns_longtimer ? " [NS]" : "";
+      const status = m.intro_completed ? "✅" : "⏳";
+      return [
+        Markup.button.callback(
+          truncate(`${status}${nsTag} ${memberLabel(m)}`, 40),
+          `a:mem:v:${m.telegram_id}`,
+        ),
+      ];
+    });
+
+    const nav: ReturnType<typeof Markup.button.callback>[] = [];
+    if (page > 0)
+      nav.push(Markup.button.callback("< Prev", `a:mem:all:${page - 1}`));
+    nav.push(Markup.button.callback(`${page + 1}/${totalPages}`, "a:noop"));
+    if (page < totalPages - 1)
+      nav.push(Markup.button.callback("Next >", `a:mem:all:${page + 1}`));
+
+    rows.push(nav);
+    rows.push([backButton("a:mem")]);
+
+    await ctx.editMessageText(
+      `All Members (${total})`,
+      Markup.inlineKeyboard(rows),
     );
     return true;
   }
@@ -95,11 +143,13 @@ export async function handleCallback(
     }
 
     const status = member.intro_completed ? "Completed" : "Pending";
+    const nsStatus = member.is_ns_longtimer ? "Yes" : "No";
     const text = [
       `Name: ${member.first_name || "N/A"}`,
       `Username: ${member.username ? "@" + member.username : "N/A"}`,
       `Telegram ID: ${member.telegram_id}`,
       `Intro: ${status}`,
+      `NS Long-termer: ${nsStatus}`,
       `Joined: ${member.joined_at.toISOString().split("T")[0]}`,
     ].join("\n");
 
@@ -119,9 +169,23 @@ export async function handleCallback(
         ),
       ]);
     }
+    buttons.push([
+      Markup.button.callback("🗑️ Delete Member", `a:mem:del:${member.telegram_id}`),
+    ]);
     buttons.push([backButton("a:mem")]);
 
     await ctx.editMessageText(text, Markup.inlineKeyboard(buttons));
+    return true;
+  }
+
+  if (data.startsWith("a:mem:del:")) {
+    const telegramId = parseInt(data.split(":")[3], 10);
+    await deleteMember(telegramId);
+    await createAdminLog("ban_member", userId, telegramId, "Deleted from admin panel");
+    await ctx.editMessageText(
+      `Member ${telegramId} deleted.`,
+      Markup.inlineKeyboard([[backButton("a:mem")]]),
+    );
     return true;
   }
 

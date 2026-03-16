@@ -96,14 +96,19 @@ export function setup(bot: Telegraf): void {
     if (data === "ns:yes") {
       await flagNsLongtimer(userId);
       console.log(`NS long-termer flagged: ${ctx.from.username || ctx.from.first_name} (${userId})`);
-      await ctx.editMessageText(
-        "Your introduction has been posted! You've been flagged as an NS long-termer. You can now chat freely in the group.",
-      );
-    } else {
-      await ctx.editMessageText(
-        "Your introduction has been posted! You can now chat freely in the group.",
-      );
     }
+
+    await markIntroCompleted(userId);
+    try {
+      await unmuteUser(ctx.telegram, userId);
+    } catch {
+      // Owner/admin can't be unmuted
+    }
+
+    const msg = data === "ns:yes"
+      ? "Your introduction has been posted! You've been flagged as an NS long-termer. You can now chat freely in the group."
+      : "Your introduction has been posted! You can now chat freely in the group.";
+    await ctx.editMessageText(msg);
 
     introState.delete(userId);
     await deleteWelcomeMessage(ctx.telegram, userId);
@@ -123,14 +128,19 @@ export function setup(bot: Telegraf): void {
       if (answer === "yes" || answer === "y") {
         await flagNsLongtimer(userId);
         console.log(`NS long-termer flagged: ${ctx.from.username || ctx.from.first_name} (${userId})`);
-        await ctx.reply(
-          "You've been flagged as an NS long-termer. You can now chat freely in the group.",
-        );
-      } else {
-        await ctx.reply(
-          "Got it! You can now chat freely in the group.",
-        );
       }
+
+      await markIntroCompleted(userId);
+      try {
+        await unmuteUser(ctx.telegram, userId);
+      } catch {
+        // Owner/admin can't be unmuted
+      }
+
+      const msg = (answer === "yes" || answer === "y")
+        ? "You've been flagged as an NS long-termer. You can now chat freely in the group."
+        : "Got it! You can now chat freely in the group.";
+      await ctx.reply(msg);
       introState.delete(userId);
       await deleteWelcomeMessage(ctx.telegram, userId);
       return;
@@ -195,45 +205,16 @@ export function setup(bot: Telegraf): void {
         parse_mode: "HTML",
       });
 
-      await markIntroCompleted(userId);
-      try {
-        await unmuteUser(ctx.telegram, userId);
-      } catch {
-        // Owner/admin can't be unmuted — that's fine
-      }
-
-      // Check if intro already mentions NS
-      let autoDetected = false;
-      if (config.openaiApiKey) {
-        try {
-          autoDetected = await detectNsLongtimer(text);
-          if (autoDetected) {
-            await flagNsLongtimer(userId);
-            console.log(`NS long-termer auto-detected: ${ctx.from.username || ctx.from.first_name} (${userId})`);
-          }
-        } catch (err) {
-          console.error(`NS detection error for user ${userId}:`, (err as Error).message);
-        }
-      }
-
-      if (autoDetected) {
-        // NS was mentioned in intro — no need to ask
-        introState.delete(userId);
-        await deleteWelcomeMessage(ctx.telegram, userId);
-        await ctx.reply(
-          "Your introduction has been posted! You've been flagged as an NS long-termer. You can now chat freely in the group.",
-        );
-      } else {
-        // Ask follow-up question
-        introState.set(userId, { step: "AWAITING_NS" });
-        await ctx.reply(
-          "Are you an NS long-termer?",
-          Markup.inlineKeyboard([
-            [Markup.button.callback("Yes", "ns:yes"),
-             Markup.button.callback("No", "ns:no")],
-          ]),
-        );
-      }
+      // Don't mark completed yet — wait for NS answer
+      // Always ask NS question
+      introState.set(userId, { step: "AWAITING_NS" });
+      await ctx.reply(
+        "One last question — are you an NS long-termer?",
+        Markup.inlineKeyboard([
+          [Markup.button.callback("Yes", "ns:yes"),
+           Markup.button.callback("No", "ns:no")],
+        ]),
+      );
     } catch (err) {
       console.error(
         `Error posting intro for user ${userId}:`,
