@@ -6,6 +6,9 @@ import { muteUser } from "../permissions";
 
 const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}! Click below to introduce yourself.";
 
+// Track welcome message IDs so introFlow can delete them after completion
+export const welcomeMessageIds = new Map<number, { chatId: number; messageId: number }>();
+
 export function setup(bot: Telegraf): void {
   bot.on("new_chat_members", async (ctx) => {
     if (ctx.chat.id !== config.mainGroupId) return;
@@ -59,12 +62,18 @@ export function setup(bot: Telegraf): void {
           `[${name}](tg://user?id=${member.id})`,
         );
 
-        await ctx.telegram.sendMessage(config.mainGroupId, welcomeText, {
+        const sent = await ctx.telegram.sendMessage(config.mainGroupId, welcomeText, {
           message_thread_id: config.welcomeTopicId,
           parse_mode: "Markdown",
           ...Markup.inlineKeyboard([
             Markup.button.url("Start Introduction", deepLink),
           ]),
+        });
+
+        // Store so introFlow can delete after completion
+        welcomeMessageIds.set(member.id, {
+          chatId: config.mainGroupId,
+          messageId: sent.message_id,
         });
       } catch (err) {
         console.error(

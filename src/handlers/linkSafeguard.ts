@@ -1,6 +1,10 @@
 import { Markup, Telegraf } from "telegraf";
 import { config } from "../config";
 
+// Track warning message IDs so we can delete them when the link is removed
+// key: "chatId_linkMsgId" → value: warningMsgId
+const warningMessages = new Map<string, number>();
+
 export function setup(bot: Telegraf): void {
   // Detect links in group messages and warn
   bot.on("message", async (ctx, next) => {
@@ -32,9 +36,9 @@ export function setup(bot: Telegraf): void {
     const user = ctx.from;
     const display = user.username ? `@${user.username}` : user.first_name;
 
-    // Auto-reply safety warning in same topic
+    // Auto-reply safety warning as a reply to the link message
     try {
-      await ctx.telegram.sendMessage(
+      const warning = await ctx.telegram.sendMessage(
         chatId,
         "🛡️ *Link Detected — Stay Safe!*\n" +
           "━━━━━━━━━━━━━━━━━━━━\n\n" +
@@ -48,6 +52,9 @@ export function setup(bot: Telegraf): void {
           parse_mode: "Markdown",
         },
       );
+
+      // Store warning message ID for cleanup
+      warningMessages.set(`${chatId}_${msgId}`, warning.message_id);
     } catch (err) {
       console.error("Failed to post link warning:", (err as Error).message);
     }
@@ -106,7 +113,22 @@ export function setup(bot: Telegraf): void {
     try {
       const targetChatId = parseInt(parts[1], 10);
       const targetMsgId = parseInt(parts[2], 10);
+
+      // Delete the link message
       await ctx.telegram.deleteMessage(targetChatId, targetMsgId);
+
+      // Delete the warning reply too
+      const key = `${targetChatId}_${targetMsgId}`;
+      const warningMsgId = warningMessages.get(key);
+      if (warningMsgId) {
+        try {
+          await ctx.telegram.deleteMessage(targetChatId, warningMsgId);
+        } catch {
+          // warning may already be deleted
+        }
+        warningMessages.delete(key);
+      }
+
       await ctx.editMessageText(
         `${originalText}\n\n✅ Deleted by ${ctx.from.first_name}`,
       );

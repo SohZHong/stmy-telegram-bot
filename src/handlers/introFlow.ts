@@ -1,21 +1,37 @@
-import { Telegraf } from "telegraf";
+import { Markup, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 import { config } from "../config";
-import { getMember, markIntroCompleted } from "../models/member";
+import { getMember, markIntroCompleted, flagNsLongtimer } from "../models/member";
 import { getSetting } from "../models/settings";
 import { getRandomWelcomeMessage } from "../models/welcomeMessage";
-import { postToClosedTopic, unmuteUser } from "../permissions";
+import { unmuteUser } from "../permissions";
 import { getAllBlockedWords } from "../models/blockedWord";
 import { escapeHtml } from "../utils/format";
-import { validateIntro } from "../services/llm";
+import { validateIntro, detectNsLongtimer } from "../services/llm";
+import { welcomeMessageIds } from "./newMember";
 
 const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}!";
 
-interface IntroState {
-  state: "AWAITING_INTRO";
-}
+type IntroState =
+  | { step: "AWAITING_INTRO" }
+  | { step: "AWAITING_NS" };
 
 const introState = new Map<number, IntroState>();
+
+async function deleteWelcomeMessage(
+  telegram: import("telegraf").Telegram,
+  userId: number,
+): Promise<void> {
+  const welcome = welcomeMessageIds.get(userId);
+  if (welcome) {
+    try {
+      await telegram.deleteMessage(welcome.chatId, welcome.messageId);
+    } catch {
+      // message may already be deleted
+    }
+    welcomeMessageIds.delete(userId);
+  }
+}
 
 export function setup(bot: Telegraf): void {
   // Handle /start intro deep link in private chats
@@ -56,13 +72,41 @@ export function setup(bot: Telegraf): void {
 
       await ctx.reply(text, { parse_mode: "Markdown" });
 
-      introState.set(userId, { state: "AWAITING_INTRO" });
+      introState.set(userId, { step: "AWAITING_INTRO" });
     } catch (err) {
       console.error(
         `Error in intro flow start for user ${userId}:`,
         (err as Error).message,
       );
     }
+  });
+
+  // Handle NS yes/no callback buttons
+  bot.on("callback_query", async (ctx, next) => {
+    if (!("data" in ctx.callbackQuery)) return next();
+    const data = ctx.callbackQuery.data;
+    if (!data.startsWith("ns:")) return next();
+
+    const userId = ctx.from.id;
+    const state = introState.get(userId);
+    if (!state || state.step !== "AWAITING_NS") return next();
+
+    await ctx.answerCbQuery();
+
+    if (data === "ns:yes") {
+      await flagNsLongtimer(userId);
+      console.log(`NS long-termer flagged: ${ctx.from.username || ctx.from.first_name} (${userId})`);
+      await ctx.editMessageText(
+        "Your introduction has been posted! You've been flagged as an NS long-termer. You can now chat freely in the group.",
+      );
+    } else {
+      await ctx.editMessageText(
+        "Your introduction has been posted! You can now chat freely in the group.",
+      );
+    }
+
+    introState.delete(userId);
+    await deleteWelcomeMessage(ctx.telegram, userId);
   });
 
   // Collect intro text in private chats
@@ -72,6 +116,25 @@ export function setup(bot: Telegraf): void {
     const userId = ctx.from.id;
     const state = introState.get(userId);
     if (!state) return next();
+
+    // If waiting for NS answer as text fallback
+    if (state.step === "AWAITING_NS") {
+      const answer = ctx.message.text.trim().toLowerCase();
+      if (answer === "yes" || answer === "y") {
+        await flagNsLongtimer(userId);
+        console.log(`NS long-termer flagged: ${ctx.from.username || ctx.from.first_name} (${userId})`);
+        await ctx.reply(
+          "You've been flagged as an NS long-termer. You can now chat freely in the group.",
+        );
+      } else {
+        await ctx.reply(
+          "Got it! You can now chat freely in the group.",
+        );
+      }
+      introState.delete(userId);
+      await deleteWelcomeMessage(ctx.telegram, userId);
+      return;
+    }
 
     const text = ctx.message.text;
 
@@ -116,7 +179,6 @@ export function setup(bot: Telegraf): void {
           `LLM intro validation error for user ${userId}:`,
           (err as Error).message,
         );
-        // On LLM error, allow the intro through (fail open)
       }
     }
 
@@ -128,20 +190,50 @@ export function setup(bot: Telegraf): void {
 
       const introText = `<b>Introduction from</b>${username}\n\n${escapeHtml(text)}`;
 
-      await postToClosedTopic(ctx.telegram, config.introTopicId, () =>
-        ctx.telegram.sendMessage(config.mainGroupId, introText, {
-          message_thread_id: config.introTopicId,
-          parse_mode: "HTML",
-        }),
-      );
+      await ctx.telegram.sendMessage(config.mainGroupId, introText, {
+        message_thread_id: config.introTopicId,
+        parse_mode: "HTML",
+      });
 
       await markIntroCompleted(userId);
-      await unmuteUser(ctx.telegram, userId);
-      introState.delete(userId);
+      try {
+        await unmuteUser(ctx.telegram, userId);
+      } catch {
+        // Owner/admin can't be unmuted — that's fine
+      }
 
-      await ctx.reply(
-        "Your introduction has been posted! You can now chat freely in the group.",
-      );
+      // Check if intro already mentions NS
+      let autoDetected = false;
+      if (config.openaiApiKey) {
+        try {
+          autoDetected = await detectNsLongtimer(text);
+          if (autoDetected) {
+            await flagNsLongtimer(userId);
+            console.log(`NS long-termer auto-detected: ${ctx.from.username || ctx.from.first_name} (${userId})`);
+          }
+        } catch (err) {
+          console.error(`NS detection error for user ${userId}:`, (err as Error).message);
+        }
+      }
+
+      if (autoDetected) {
+        // NS was mentioned in intro — no need to ask
+        introState.delete(userId);
+        await deleteWelcomeMessage(ctx.telegram, userId);
+        await ctx.reply(
+          "Your introduction has been posted! You've been flagged as an NS long-termer. You can now chat freely in the group.",
+        );
+      } else {
+        // Ask follow-up question
+        introState.set(userId, { step: "AWAITING_NS" });
+        await ctx.reply(
+          "Are you an NS long-termer?",
+          Markup.inlineKeyboard([
+            [Markup.button.callback("Yes", "ns:yes"),
+             Markup.button.callback("No", "ns:no")],
+          ]),
+        );
+      }
     } catch (err) {
       console.error(
         `Error posting intro for user ${userId}:`,

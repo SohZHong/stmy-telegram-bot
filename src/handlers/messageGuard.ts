@@ -19,6 +19,14 @@ export function setup(bot: Telegraf): void {
       return next();
     }
 
+    // Skip service messages (joins, leaves, etc.)
+    if (
+      "new_chat_members" in ctx.message ||
+      "left_chat_member" in ctx.message
+    ) {
+      return next();
+    }
+
     // Skip bots
     if (ctx.from.is_bot) return next();
 

@@ -40,8 +40,20 @@ async function start(): Promise<void> {
   await runMigrations(config.databaseUrl);
   console.log("Migrations complete");
 
-  await ensureAdminGuide(bot.telegram);
-  await ensureReportPost(bot.telegram);
+  if (config.mainGroupId) {
+    try {
+      await ensureAdminGuide(bot.telegram);
+    } catch (err) {
+      console.warn("Could not post admin guide (check MAIN_GROUP_ID / ADMIN_TOPIC_ID):", (err as Error).message);
+    }
+    try {
+      await ensureReportPost(bot.telegram);
+    } catch (err) {
+      console.warn("Could not post report button (check MAIN_GROUP_ID):", (err as Error).message);
+    }
+  } else {
+    console.warn("MAIN_GROUP_ID is 0 — skipping startup posts. Use /setup in your group to get the ID.");
+  }
 
   bot.launch();
   console.log("Bot started");

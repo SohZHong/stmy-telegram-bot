@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { config } from "../config";
 
+const MODEL = "gpt-5-mini";
+
 let client: OpenAI | null = null;
 
 function getClient(): OpenAI {
@@ -16,7 +18,7 @@ export async function validateIntro(
 ): Promise<{ valid: boolean; reason: string }> {
   const c = getClient();
   const response = await c.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: MODEL,
     messages: [
       {
         role: "user",
@@ -37,7 +39,6 @@ Respond in JSON format:
       },
     ],
     response_format: { type: "json_object" },
-    temperature: 0.1,
   });
 
   const result = JSON.parse(response.choices[0].message.content ?? "{}");
@@ -53,7 +54,7 @@ export async function summarizeMessages(
     .join("\n");
 
   const response = await c.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: MODEL,
     messages: [
       {
         role: "user",
@@ -65,7 +66,6 @@ ${formatted}
 Provide a clear summary of what's being discussed right now.`,
       },
     ],
-    temperature: 0.3,
   });
 
   return response.choices[0].message.content?.trim() ?? "";
@@ -74,7 +74,7 @@ Provide a clear summary of what's being discussed right now.`,
 export async function isContactQuery(messageText: string): Promise<boolean> {
   const c = getClient();
   const response = await c.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: MODEL,
     messages: [
       {
         role: "user",
@@ -85,8 +85,35 @@ Message: "${messageText}"
 Respond with ONLY "yes" or "no".`,
       },
     ],
-    temperature: 0,
-    max_tokens: 5,
+    max_completion_tokens: 5,
+  });
+
+  return response.choices[0].message.content?.trim().toLowerCase() === "yes";
+}
+
+export async function detectNsLongtimer(text: string): Promise<boolean> {
+  const c = getClient();
+  const response = await c.chat.completions.create({
+    model: MODEL,
+    messages: [
+      {
+        role: "user",
+        content: `You are analyzing a new member's introduction for the Superteam MY community.
+
+Determine if this person is an NS (Network State / Superteam) long-termer — someone who has been part of Superteam, the Solana ecosystem, or the broader Network State community for a long time (not a newcomer/lurker).
+
+Signs they are a long-termer:
+- They mention being part of Superteam, NS, or similar communities for months/years
+- They reference past contributions, projects, or roles in the ecosystem
+- They mention being an existing/returning member
+- They have deep familiarity with the community or ecosystem
+
+Introduction: "${text}"
+
+Respond with ONLY "yes" or "no".`,
+      },
+    ],
+    max_completion_tokens: 5,
   });
 
   return response.choices[0].message.content?.trim().toLowerCase() === "yes";
@@ -100,7 +127,7 @@ export async function answerMembersQuestion(
   const membersInfo = JSON.stringify(members, null, 2);
 
   const response = await c.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: MODEL,
     messages: [
       {
         role: "user",
@@ -115,7 +142,6 @@ The admin is asking: "${question}"
 Answer the question based on the member data. Be concise and useful. If the question asks for counts, breakdowns, or patterns, provide them. If the data doesn't contain enough info to answer, say so.`,
       },
     ],
-    temperature: 0.3,
   });
 
   return response.choices[0].message.content?.trim() ?? "";

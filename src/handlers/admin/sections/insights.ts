@@ -1,10 +1,9 @@
 import { Markup } from "telegraf";
 import { messageBuffer } from "../../messageTracker";
 import { summarizeMessages, answerMembersQuestion } from "../../../services/llm";
-import { config } from "../../../config";
 import { adminState, backButton } from "../shared";
 import type { CbCtx, TextCtx, AdminAction } from "../shared";
-import { pool } from "../../../db/database";
+import { getAllMembers } from "../../../models/member";
 
 function insightsKeyboard() {
   return Markup.inlineKeyboard([
@@ -27,14 +26,6 @@ export async function handleCallback(
   }
 
   if (data === "a:ai:sum") {
-    if (!config.openaiApiKey) {
-      await ctx.editMessageText(
-        "OPENAI_API_KEY not configured.",
-        Markup.inlineKeyboard([[backButton("a:ai")]]),
-      );
-      return true;
-    }
-
     // General topic messages (threadId undefined or 1)
     const generalMsgs = messageBuffer.filter(
       (m) => m.threadId == null || m.threadId === 1,
@@ -106,18 +97,8 @@ export async function handleCallback(
   }
 
   if (data === "a:ai:mai") {
-    if (!config.openaiApiKey) {
-      await ctx.editMessageText(
-        "OPENAI_API_KEY not configured.",
-        Markup.inlineKeyboard([[backButton("a:ai")]]),
-      );
-      return true;
-    }
-
-    const { rows } = await pool.query<{ count: string }>(
-      "SELECT COUNT(*) as count FROM members",
-    );
-    const count = parseInt(rows[0].count, 10);
+    const members = await getAllMembers();
+    const count = members.length;
 
     if (count === 0) {
       await ctx.editMessageText(
@@ -149,9 +130,9 @@ export async function handleText(
   adminState.delete(userId);
 
   try {
-    const { rows: members } = await pool.query("SELECT * FROM members");
+    const members = await getAllMembers();
     await ctx.reply("⏳ Analyzing member data...");
-    const answer = await answerMembersQuestion(text, members);
+    const answer = await answerMembersQuestion(text, members as unknown as Record<string, unknown>[]);
     await ctx.reply(
       `👥 ${answer}`,
       Markup.inlineKeyboard([[backButton("a:ai")]]),
