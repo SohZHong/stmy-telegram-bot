@@ -67,6 +67,7 @@ export async function countPendingMembers(): Promise<number> {
 }
 
 export async function searchMembers(query: string): Promise<Member[]> {
+  const cleaned = query.replace(/^@/, "");
   const { rows } = await pool.query<Member>(
     `SELECT * FROM members
      WHERE telegram_id::text = $1
@@ -74,7 +75,7 @@ export async function searchMembers(query: string): Promise<Member[]> {
         OR first_name ILIKE '%' || $2 || '%'
      ORDER BY joined_at DESC
      LIMIT 10`,
-    [query, query],
+    [cleaned, cleaned],
   );
   return rows;
 }
