@@ -13,6 +13,8 @@ import * as blockedWords from "./sections/blockedWords";
 import * as announcements from "./sections/announcements";
 import * as adminGuide from "./sections/adminGuide";
 import * as reports from "./sections/reports";
+import * as insights from "./sections/insights";
+import * as delegation from "./sections/delegation";
 
 const sections: {
   handleCallback: (
@@ -37,6 +39,8 @@ const sections: {
   blockedWords,
   announcements,
   reports,
+  insights,
+  delegation,
 ];
 
 const HELP_TEXT = "<b>Admin Menu Help</b>\n\n" + ADMIN_HELP_BODY;
@@ -53,6 +57,8 @@ function mainMenuKeyboard() {
     [Markup.button.callback("Announcements", "a:ann")],
     [Markup.button.callback("Reports", "a:rpt")],
     [Markup.button.callback("Logs", "a:log")],
+    [Markup.button.callback("AI Insights", "a:ai")],
+    [Markup.button.callback("Delegation", "a:dlg")],
     [Markup.button.callback("Help", "a:help")],
   ]);
 }

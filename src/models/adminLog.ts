@@ -19,7 +19,8 @@ export type AdminLogAction =
   | "dismiss_report"
   | "add_report_reason"
   | "edit_report_reason"
-  | "delete_report_reason";
+  | "delete_report_reason"
+  | "delete_member";
 
 export interface AdminLog {
   id: number;

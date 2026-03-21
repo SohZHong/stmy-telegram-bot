@@ -20,7 +20,8 @@ export type AdminAction =
   | { type: "AWAITING_RPT_ALERT" }
   | { type: "AWAITING_RPT_AUTOBAN" }
   | { type: "AWAITING_RPT_ADMIN" }
-  | { type: "AWAITING_RPT_COOLDOWN" };
+  | { type: "AWAITING_RPT_COOLDOWN" }
+  | { type: "AWAITING_MAI_Q" };
 
 // Log display utility
 export const ACTION_ALIASES: Record<string, AdminLogAction> = {
@@ -43,6 +44,7 @@ export const ACTION_ALIASES: Record<string, AdminLogAction> = {
   add_rr: "add_report_reason",
   edit_rr: "edit_report_reason",
   del_rr: "delete_report_reason",
+  del_mem: "delete_member",
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -65,6 +67,7 @@ const ACTION_LABELS: Record<string, string> = {
   add_report_reason: "Add RR",
   edit_report_reason: "Edit RR",
   delete_report_reason: "Del RR",
+  delete_member: "Del Member",
 };
 
 export const adminState = new Map<number, AdminAction>();
@@ -82,6 +85,8 @@ export const ADMIN_HELP_BODY = [
   "• <b>Stats</b> — Member counts and intro completion stats",
   "• <b>Blocked Words</b> — Manage words blocked from intro submissions",
   "• <b>Reports</b> — View reports, manage report reasons, and configure thresholds",
+  "• <b>AI Insights</b> — Chat summary, activity leaderboard, member AI queries",
+  "• <b>Delegation</b> — Assign a specific admin for NS verification, link alerts, and report notifications",
   "• <b>Logs</b> — Browse admin action logs with filters and pagination",
   "",
   "<b>Group Commands</b>",
@@ -117,7 +122,11 @@ export const HELP_TEXT = [
   "",
   "<b>Admin menu (DM only)</b>",
   "Send <code>/start admin</code> to the bot in DM to open the admin panel.",
-  "Manage members, bans, welcome messages, intro guide, stats, and logs.",
+  "Manage members, bans, welcome messages, intro guide, stats, AI insights, and logs.",
+  "",
+  "<b>Automatic features</b>",
+  "• Link safeguard — warns on links in group, notifies admins with delete button",
+  "• Contact auto-reply — AI answers \"who to contact\" questions (requires OPENAI_API_KEY)",
 ].join("\n");
 
 export const POSTHELP_TEXT =

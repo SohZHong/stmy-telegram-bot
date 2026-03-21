@@ -7,6 +7,7 @@ export interface Member {
   first_name: string | null;
   group_id: string;
   intro_completed: boolean;
+  is_ns_longtimer: boolean;
   joined_at: Date;
   intro_completed_at: Date | null;
 }
@@ -66,7 +67,7 @@ export async function countPendingMembers(): Promise<number> {
 }
 
 export async function searchMembers(query: string): Promise<Member[]> {
-  // Try exact telegram_id match first, otherwise search by username/first_name
+  const cleaned = query.replace(/^@/, "");
   const { rows } = await pool.query<Member>(
     `SELECT * FROM members
      WHERE telegram_id::text = $1
@@ -74,7 +75,7 @@ export async function searchMembers(query: string): Promise<Member[]> {
         OR first_name ILIKE '%' || $2 || '%'
      ORDER BY joined_at DESC
      LIMIT 10`,
-    [query, query],
+    [cleaned, cleaned],
   );
   return rows;
 }
@@ -106,4 +107,16 @@ export async function getMemberStats(): Promise<MemberStats> {
     FROM members
   `);
   return rows[0];
+}
+
+export async function getAllMembers(): Promise<Member[]> {
+  const { rows } = await pool.query<Member>(`SELECT * FROM members`);
+  return rows;
+}
+
+export async function flagNsLongtimer(telegramId: number): Promise<void> {
+  await pool.query(
+    `UPDATE members SET is_ns_longtimer = TRUE WHERE telegram_id = $1`,
+    [telegramId],
+  );
 }
