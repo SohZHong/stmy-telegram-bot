@@ -9,6 +9,7 @@ import { getAllBlockedWords } from "../models/blockedWord";
 import { escapeHtml } from "../utils/format";
 import { validateIntro } from "../services/llm";
 import { welcomeMessageIds } from "./newMember";
+import { nagMessageIds } from "./messageGuard";
 
 const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}!";
 
@@ -30,6 +31,23 @@ async function deleteWelcomeMessage(
       // message may already be deleted
     }
     welcomeMessageIds.delete(userId);
+  }
+}
+
+async function deleteNagMessages(
+  telegram: import("telegraf").Telegram,
+  userId: number,
+): Promise<void> {
+  const msgIds = nagMessageIds.get(userId);
+  if (msgIds) {
+    for (const msgId of msgIds) {
+      try {
+        await telegram.deleteMessage(userId, msgId);
+      } catch {
+        // message may already be deleted
+      }
+    }
+    nagMessageIds.delete(userId);
   }
 }
 
@@ -118,6 +136,9 @@ async function finalizeIntro(
 
   // Delete welcome message from Welcome topic
   await deleteWelcomeMessage(telegram, userId);
+
+  // Delete nag DM reminders
+  await deleteNagMessages(telegram, userId);
 }
 
 export function setup(bot: Telegraf): void {

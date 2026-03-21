@@ -55,7 +55,9 @@ async function start(): Promise<void> {
     console.warn("MAIN_GROUP_ID is 0 — skipping startup posts. Use /setup in your group to get the ID.");
   }
 
-  bot.launch();
+  bot.launch({
+    allowedUpdates: ["message", "callback_query", "chat_member", "my_chat_member"],
+  });
   console.log("Bot started");
 }
 
