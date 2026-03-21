@@ -95,6 +95,10 @@ DATABASE_URL=postgresql://bot:bot@localhost:5432/stmy_bot
 
 # Optional: enable posting announcements to a group topic
 # ANNOUNCEMENTS_TOPIC_ID=123
+
+# Optional: AI features (intro validation, contact auto-reply, chat summary, member queries)
+# OPENAI_API_KEY=sk-...
+# PIC_HANDLES=@alice, @bob
 ```
 
 ## 6. Start the database
@@ -127,7 +131,8 @@ This starts the bot with hot-reload via `tsx --watch`. Migrations run automatica
 2. Verify the admin guide is pinned in the **Admin** topic and the report button is pinned in **General**
 3. Open a DM with your bot on Telegram
 4. Send `/start admin` — you should see the admin menu
-5. In the group, add a new member (or have someone join) — they should be muted and see a welcome button in the Welcome topic
+5. In the group, use `/testjoin` (admin only) to simulate a new member join — you should see a welcome button in the Welcome topic. Or have someone actually join the group
+6. If you set `OPENAI_API_KEY`, test by posting a link in the group (link safeguard warning should appear) or asking "who should I contact at superteam?" (AI auto-reply)
 
 ## Running migrations manually
 

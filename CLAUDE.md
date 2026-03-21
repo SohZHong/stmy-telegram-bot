@@ -125,6 +125,7 @@ Member clicks "Start Introduction" → DM with /start intro
   → introFlow.ts: collect intro text, validate (blocked words, length, LLM if configured)
   → Ask NS long-termer question (yes/no buttons)
   → finalizeIntro(): post to intro topic (via postToClosedTopic), markIntroCompleted(), unmuteUser()
+  → If claimed NS: notify admins (or ns_designated_admin) with approve/reject buttons (nsv:yes/nsv:no)
   → Delete welcome message from Welcome topic
 
 Pre-existing member posts (not in DB)
@@ -166,3 +167,17 @@ npm run migrate                             # Runs pending migrations
 - **No circular imports:** Handlers import from models/services/shared, never from each other (except `introFlow` importing `welcomeMessageIds` from `newMember` — the one allowed cross-handler import).
 - **Startup posts:** `ensureAdminGuide` and `ensureReportPost` are wrapped in try-catch and skipped when `mainGroupId` is 0. New startup posts should follow this pattern.
 - **Service messages:** `messageGuard` explicitly skips `new_chat_members` / `left_chat_member` to avoid processing join/leave events as regular messages. New group message handlers should do the same if they delete or act on messages.
+
+## Delegation Pattern
+
+Three features support delegating notifications to a specific admin instead of all admins. Each uses a `settings` DB row:
+
+| Setting Key | Feature | Checked by |
+|-------------|---------|------------|
+| `ns_designated_admin` | NS long-termer verification | `introFlow.ts` → `notifyNsVerification()` |
+| `link_designated_admin` | Link alert delete buttons | `linkSafeguard.ts` → `notifyLinkAdmins()` |
+| `report_designated_admin` | Report notifications | `reportFlow.ts` → `notifyAdmins()` |
+
+**Pattern:** Check `getSetting(key)`. If set and not `"0"`, send to that admin only. Otherwise, call `getChatAdministrators()` and send to all non-bot admins. All three are configurable from the Delegation admin menu section (`a:dlg:*` callbacks).
+
+When displaying a designated admin, always use `resolveUser(id, telegram)` to show `@username` or first name instead of raw IDs.
