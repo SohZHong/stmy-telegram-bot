@@ -43,7 +43,7 @@ export function setup(bot: Telegraf): void {
       const client = new OpenAI({ apiKey: config.openaiApiKey });
 
       const response = await client.chat.completions.create({
-        model: "gpt-4.1-nano",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",

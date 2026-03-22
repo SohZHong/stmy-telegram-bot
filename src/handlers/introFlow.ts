@@ -7,7 +7,7 @@ import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { unmuteUser, postToClosedTopic } from "../permissions";
 import { getAllBlockedWords } from "../models/blockedWord";
 import { escapeHtml } from "../utils/format";
-import { validateIntro } from "../services/llm";
+import { validateIntro, generateIntro } from "../services/llm";
 import { welcomeMessageIds } from "./newMember";
 import { nagMessageIds } from "./messageGuard";
 
@@ -105,8 +105,19 @@ async function finalizeIntro(
   firstName: string | undefined,
   isNsLongtimer: boolean,
 ): Promise<void> {
+  // AI-rewrite the intro if OpenAI is configured, otherwise use raw text
+  let polishedIntro = introText;
+  if (config.openaiApiKey) {
+    try {
+      const displayName = firstName || username || "New Member";
+      polishedIntro = await generateIntro(introText, displayName);
+    } catch (err) {
+      console.error(`Failed to generate intro, using raw text:`, (err as Error).message);
+    }
+  }
+
   // Post intro to Intro topic (wrapped for closed topics)
-  const escapedIntro = escapeHtml(introText);
+  const escapedIntro = escapeHtml(polishedIntro);
   const usernameTag = username ? ` @${username}` : "";
   const postText = `<b>Introduction from</b>${usernameTag}\n\n${escapedIntro}`;
 
