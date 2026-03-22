@@ -1,5 +1,6 @@
 import { Markup, Telegraf } from "telegraf";
 import { config } from "../config";
+import { isDomainWhitelisted } from "../models/whitelistedDomain";
 
 // Track warning message IDs so we can delete them when the link is removed
 // key: "chatId_linkMsgId" → value: warningMsgId
@@ -26,6 +27,31 @@ export function setup(bot: Telegraf): void {
       (e) => e.type === "url" || e.type === "text_link",
     );
     if (!hasUrl) return next();
+
+    // Extract domains from all URLs in the message
+    const domains: string[] = [];
+    for (const entity of entities) {
+      let url = "";
+      if (entity.type === "url") {
+        url = ctx.message.text.substring(entity.offset, entity.offset + entity.length);
+      } else if (entity.type === "text_link" && entity.url) {
+        url = entity.url;
+      }
+      try {
+        // Prepend protocol if missing so URL parser works
+        if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+        const hostname = new URL(url).hostname.toLowerCase();
+        domains.push(hostname);
+      } catch {
+        // malformed URL, still flag it
+      }
+    }
+
+    // If all domains are whitelisted, skip the warning
+    if (domains.length > 0) {
+      const checks = await Promise.all(domains.map((d) => isDomainWhitelisted(d)));
+      if (checks.every(Boolean)) return next();
+    }
 
     const chatId = ctx.chat.id;
     const msgId = ctx.message.message_id;

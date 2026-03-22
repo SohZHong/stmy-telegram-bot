@@ -142,13 +142,14 @@ export async function handleCallback(
       return true;
     }
 
-    const status = member.intro_completed ? "Completed" : "Pending";
+    const introStatus = member.intro_completed ? "Completed" : "Pending";
     const nsStatus = member.is_ns_longtimer ? "Yes" : "No";
     const text = [
       `Name: ${member.first_name || "N/A"}`,
       `Username: ${member.username ? "@" + member.username : "N/A"}`,
       `Telegram ID: ${member.telegram_id}`,
-      `Intro: ${status}`,
+      `Status: ${member.status}`,
+      `Intro: ${introStatus}`,
       `NS Long-termer: ${nsStatus}`,
       `Joined: ${member.joined_at.toISOString().split("T")[0]}`,
     ].join("\n");
