@@ -10,10 +10,7 @@ export interface Member {
   group_id: string;
   intro_completed: boolean;
   is_ns_longtimer: boolean;
-<<<<<<< HEAD
   status: MemberStatus;
-=======
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
   joined_at: Date;
   intro_completed_at: Date | null;
 }
@@ -122,7 +119,6 @@ export async function getAllMembers(): Promise<Member[]> {
 
 export async function flagNsLongtimer(telegramId: number): Promise<void> {
   await pool.query(
-<<<<<<< HEAD
     `UPDATE members SET is_ns_longtimer = TRUE, status = 'contributor' WHERE telegram_id = $1`,
     [telegramId],
   );
@@ -134,9 +130,3 @@ export async function setMemberStatus(telegramId: number, status: MemberStatus):
     [telegramId, status],
   );
 }
-=======
-    `UPDATE members SET is_ns_longtimer = TRUE WHERE telegram_id = $1`,
-    [telegramId],
-  );
-}
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d

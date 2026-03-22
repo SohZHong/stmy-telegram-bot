@@ -21,12 +21,8 @@ export type AdminAction =
   | { type: "AWAITING_RPT_AUTOBAN" }
   | { type: "AWAITING_RPT_ADMIN" }
   | { type: "AWAITING_RPT_COOLDOWN" }
-<<<<<<< HEAD
   | { type: "AWAITING_MAI_Q" }
   | { type: "AWAITING_WD_ADD" };
-=======
-  | { type: "AWAITING_MAI_Q" };
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
 
 // Log display utility
 export const ACTION_ALIASES: Record<string, AdminLogAction> = {
@@ -49,12 +45,9 @@ export const ACTION_ALIASES: Record<string, AdminLogAction> = {
   add_rr: "add_report_reason",
   edit_rr: "edit_report_reason",
   del_rr: "delete_report_reason",
-<<<<<<< HEAD
   add_wd: "add_whitelisted_domain",
   del_wd: "delete_whitelisted_domain",
-=======
   del_mem: "delete_member",
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -77,12 +70,9 @@ const ACTION_LABELS: Record<string, string> = {
   add_report_reason: "Add RR",
   edit_report_reason: "Edit RR",
   delete_report_reason: "Del RR",
-<<<<<<< HEAD
   add_whitelisted_domain: "Add WD",
   delete_whitelisted_domain: "Del WD",
-=======
   delete_member: "Del Member",
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
 };
 
 export const adminState = new Map<number, AdminAction>();

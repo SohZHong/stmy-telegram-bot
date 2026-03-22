@@ -4,7 +4,7 @@ import { config } from "../config";
 import { getMember, markIntroCompleted, flagNsLongtimer } from "../models/member";
 import { getSetting } from "../models/settings";
 import { getRandomWelcomeMessage } from "../models/welcomeMessage";
-import { unmuteUser } from "../permissions";
+import { unmuteUser, postToClosedTopic } from "../permissions";
 import { getAllBlockedWords } from "../models/blockedWord";
 import { escapeHtml } from "../utils/format";
 import { validateIntro } from "../services/llm";
@@ -209,11 +209,6 @@ export function setup(bot: Telegraf): void {
         userId,
         state.introText,
         ctx.from.username,
-        data === "ns:yes",
-      );
-
-      const msg = data === "ns:yes"
-        ? "Your introduction has been posted! You've been flagged as an NS long-termer. You can now chat freely in the group."
         ctx.from.first_name,
         claimedNs,
       );

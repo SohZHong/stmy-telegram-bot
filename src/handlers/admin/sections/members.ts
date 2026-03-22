@@ -142,22 +142,14 @@ export async function handleCallback(
       return true;
     }
 
-<<<<<<< HEAD
     const introStatus = member.intro_completed ? "Completed" : "Pending";
-=======
-    const status = member.intro_completed ? "Completed" : "Pending";
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
     const nsStatus = member.is_ns_longtimer ? "Yes" : "No";
     const text = [
       `Name: ${member.first_name || "N/A"}`,
       `Username: ${member.username ? "@" + member.username : "N/A"}`,
       `Telegram ID: ${member.telegram_id}`,
-<<<<<<< HEAD
       `Status: ${member.status}`,
       `Intro: ${introStatus}`,
-=======
-      `Intro: ${status}`,
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
       `NS Long-termer: ${nsStatus}`,
       `Joined: ${member.joined_at.toISOString().split("T")[0]}`,
     ].join("\n");
@@ -190,11 +182,7 @@ export async function handleCallback(
   if (data.startsWith("a:mem:del:")) {
     const telegramId = parseInt(data.split(":")[3], 10);
     await deleteMember(telegramId);
-<<<<<<< HEAD
-    await createAdminLog("ban_member", userId, telegramId, "Deleted from admin panel");
-=======
     await createAdminLog("delete_member", userId, telegramId, "Deleted from admin panel");
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
     await ctx.editMessageText(
       `Member ${telegramId} deleted.`,
       Markup.inlineKeyboard([[backButton("a:mem")]]),

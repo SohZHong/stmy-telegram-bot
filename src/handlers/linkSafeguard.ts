@@ -1,17 +1,12 @@
 import { Markup, Telegraf } from "telegraf";
 import { config } from "../config";
-<<<<<<< HEAD
 import { isDomainWhitelisted } from "../models/whitelistedDomain";
-=======
 import { getSetting } from "../models/settings";
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
 
 // Track warning message IDs so we can delete them when the link is removed
 // key: "chatId_linkMsgId" → value: warningMsgId
 const warningMessages = new Map<string, number>();
 
-<<<<<<< HEAD
-=======
 async function notifyLinkAdmins(
   telegram: import("telegraf").Telegram,
   chatId: number,
@@ -39,7 +34,6 @@ async function notifyLinkAdmins(
   }
 }
 
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
 export function setup(bot: Telegraf): void {
   // Detect links in group messages and warn
   bot.on("message", async (ctx, next) => {
@@ -62,7 +56,6 @@ export function setup(bot: Telegraf): void {
     );
     if (!hasUrl) return next();
 
-<<<<<<< HEAD
     // Extract domains from all URLs in the message
     const domains: string[] = [];
     for (const entity of entities) {
@@ -88,8 +81,6 @@ export function setup(bot: Telegraf): void {
       if (checks.every(Boolean)) return next();
     }
 
-=======
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
     const chatId = ctx.chat.id;
     const msgId = ctx.message.message_id;
     const threadId =
@@ -122,14 +113,8 @@ export function setup(bot: Telegraf): void {
       console.error("Failed to post link warning:", (err as Error).message);
     }
 
-<<<<<<< HEAD
-    // Forward to all group admins via DM with delete button
-    try {
-      const admins = await ctx.telegram.getChatAdministrators(chatId);
-=======
     // Notify designated admin (or all admins) via DM with delete button
     try {
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
       const keyboard = Markup.inlineKeyboard([
         [
           Markup.button.callback(
@@ -139,23 +124,6 @@ export function setup(bot: Telegraf): void {
         ],
       ]);
 
-<<<<<<< HEAD
-      for (const admin of admins) {
-        if (admin.user.is_bot) continue;
-        try {
-          await ctx.telegram.sendMessage(
-            admin.user.id,
-            `🔗 Link Alert\n━━━━━━━━━━━━━━━━━━━━\n\n` +
-              `👤 Posted by: ${display}\n` +
-              `💬 Message:\n${ctx.message.text}\n\n` +
-              `Tap below to remove this message if suspicious.`,
-            keyboard,
-          );
-        } catch {
-          // admin may not have started DM with bot
-        }
-      }
-=======
       await notifyLinkAdmins(
         ctx.telegram,
         chatId,
@@ -165,7 +133,6 @@ export function setup(bot: Telegraf): void {
           `Tap below to remove this message if suspicious.`,
         keyboard,
       );
->>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
     } catch (err) {
       console.error(
         "Failed to notify admins about link:",
