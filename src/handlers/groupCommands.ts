@@ -3,6 +3,7 @@ import { config } from "../config";
 import { getMember, upsertMember } from "../models/member";
 import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { welcomeMessageIds } from "./newMember";
+import { isAdminById } from "./admin/auth";
 
 export function setup(bot: Telegraf): void {
   bot.command("setup", async (ctx) => {
@@ -25,13 +26,19 @@ export function setup(bot: Telegraf): void {
     });
   });
 
-  // Simulate new member join for testing
+  // Simulate new member join for testing (admin only)
   bot.command("testjoin", async (ctx) => {
     if (ctx.chat.type === "private") {
       await ctx.reply("Run this command in the group.");
       return;
     }
     if (ctx.chat.id !== config.mainGroupId) return;
+
+    // Gate behind admin check
+    if (!(await isAdminById(ctx.telegram, ctx.from.id))) {
+      await ctx.reply("Only admins can use /testjoin.");
+      return;
+    }
 
     const user = ctx.from;
     const existing = await getMember(user.id);

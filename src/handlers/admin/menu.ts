@@ -14,7 +14,11 @@ import * as announcements from "./sections/announcements";
 import * as adminGuide from "./sections/adminGuide";
 import * as reports from "./sections/reports";
 import * as insights from "./sections/insights";
+<<<<<<< HEAD
 import * as whitelistedDomains from "./sections/whitelistedDomains";
+=======
+import * as delegation from "./sections/delegation";
+>>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
 
 const sections: {
   handleCallback: (
@@ -40,7 +44,11 @@ const sections: {
   announcements,
   reports,
   insights,
+<<<<<<< HEAD
   whitelistedDomains,
+=======
+  delegation,
+>>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
 ];
 
 const HELP_TEXT = "<b>Admin Menu Help</b>\n\n" + ADMIN_HELP_BODY;
@@ -57,8 +65,13 @@ function mainMenuKeyboard() {
     [Markup.button.callback("Announcements", "a:ann")],
     [Markup.button.callback("Reports", "a:rpt")],
     [Markup.button.callback("Logs", "a:log")],
+<<<<<<< HEAD
     [Markup.button.callback("Whitelisted Domains", "a:wd")],
     [Markup.button.callback("AI Insights", "a:ai")],
+=======
+    [Markup.button.callback("AI Insights", "a:ai")],
+    [Markup.button.callback("Delegation", "a:dlg")],
+>>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
     [Markup.button.callback("Help", "a:help")],
   ]);
 }

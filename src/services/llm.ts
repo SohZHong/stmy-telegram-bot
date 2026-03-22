@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { config } from "../config";
+import type { Member } from "../models/member";
 
 const MODEL = "gpt-5-mini";
 
@@ -79,6 +80,41 @@ Provide a clear summary of what's being discussed right now.`,
   return response.choices[0].message.content?.trim() ?? "";
 }
 
+export async function answerContactQuery(
+  messageText: string,
+  picHandles: string,
+): Promise<string | null> {
+  const c = getClient();
+  const response = await c.chat.completions.create({
+    model: "gpt-4.1-nano",
+    messages: [
+      {
+        role: "system",
+        content: `You are a helpful assistant for the Superteam MY community Telegram group.
+Answer questions about the community concisely and helpfully.
+
+Key contacts: ${picHandles || "not configured"}
+
+Rules:
+- Keep answers short (2-4 sentences max)
+- If the question is about who to contact, mention the key contacts above
+- Be friendly and welcoming
+- Don't make up information
+- If the question is NOT about the community, contacts, or Superteam, respond with exactly "SKIP"
+- If you don't know the answer, respond with exactly "SKIP"`,
+      },
+      {
+        role: "user",
+        content: messageText,
+      },
+    ],
+  });
+
+  const answer = response.choices[0].message.content?.trim();
+  if (!answer || answer === "SKIP") return null;
+  return answer;
+}
+
 export async function isContactQuery(messageText: string): Promise<boolean> {
   const c = getClient();
   const response = await c.chat.completions.create({
@@ -136,7 +172,7 @@ Respond with ONLY "yes" or "no".`,
 
 export async function answerMembersQuestion(
   question: string,
-  members: Record<string, unknown>[],
+  members: Member[],
 ): Promise<string> {
   const c = getClient();
   const membersInfo = JSON.stringify(members, null, 2);

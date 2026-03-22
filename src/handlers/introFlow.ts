@@ -9,6 +9,7 @@ import { getAllBlockedWords } from "../models/blockedWord";
 import { escapeHtml } from "../utils/format";
 import { validateIntro } from "../services/llm";
 import { welcomeMessageIds } from "./newMember";
+import { nagMessageIds } from "./messageGuard";
 
 const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}!";
 
@@ -33,27 +34,96 @@ async function deleteWelcomeMessage(
   }
 }
 
+async function deleteNagMessages(
+  telegram: import("telegraf").Telegram,
+  userId: number,
+): Promise<void> {
+  const msgIds = nagMessageIds.get(userId);
+  if (msgIds) {
+    for (const msgId of msgIds) {
+      try {
+        await telegram.deleteMessage(userId, msgId);
+      } catch {
+        // message may already be deleted
+      }
+    }
+    nagMessageIds.delete(userId);
+  }
+}
+
+async function notifyNsVerification(
+  telegram: import("telegraf").Telegram,
+  userId: number,
+  username: string | undefined,
+  firstName: string | undefined,
+): Promise<void> {
+  const display = username ? `@${username}` : firstName || String(userId);
+  const text =
+    `🏷️ <b>NS Long-termer Verification</b>\n━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `👤 ${escapeHtml(display)} (ID: ${userId}) claims to be an NS long-termer.\n\n` +
+    `Please verify and approve or reject.`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback("✅ Approve", `nsv:yes:${userId}`),
+      Markup.button.callback("❌ Reject", `nsv:no:${userId}`),
+    ],
+  ]);
+
+  const designated = await getSetting("ns_designated_admin");
+  if (designated && designated !== "0") {
+    try {
+      await telegram.sendMessage(parseInt(designated, 10), text, {
+        parse_mode: "HTML",
+        ...keyboard,
+      });
+    } catch {
+      // designated admin may not have started DM
+    }
+    return;
+  }
+
+  const admins = await telegram.getChatAdministrators(config.mainGroupId);
+  for (const admin of admins) {
+    if (admin.user.is_bot) continue;
+    try {
+      await telegram.sendMessage(admin.user.id, text, {
+        parse_mode: "HTML",
+        ...keyboard,
+      });
+    } catch {
+      // admin may not have started DM
+    }
+  }
+}
+
 async function finalizeIntro(
   telegram: import("telegraf").Telegram,
   userId: number,
   introText: string,
   username: string | undefined,
+  firstName: string | undefined,
   isNsLongtimer: boolean,
 ): Promise<void> {
-  // Post intro to Intro topic
+  // Post intro to Intro topic (wrapped for closed topics)
   const escapedIntro = escapeHtml(introText);
   const usernameTag = username ? ` @${username}` : "";
   const postText = `<b>Introduction from</b>${usernameTag}\n\n${escapedIntro}`;
 
-  await telegram.sendMessage(config.mainGroupId, postText, {
-    message_thread_id: config.introTopicId,
-    parse_mode: "HTML",
-  });
+  await postToClosedTopic(telegram, config.introTopicId, () =>
+    telegram.sendMessage(config.mainGroupId, postText, {
+      message_thread_id: config.introTopicId,
+      parse_mode: "HTML",
+    }),
+  );
 
-  // Flag NS if yes
+  // Notify admins for NS verification if claimed
   if (isNsLongtimer) {
-    await flagNsLongtimer(userId);
-    console.log(`NS long-termer flagged: ${username || userId} (${userId})`);
+    try {
+      await notifyNsVerification(telegram, userId, username, firstName);
+    } catch (err) {
+      console.error(`Failed to send NS verification notification:`, (err as Error).message);
+    }
   }
 
   // Mark completed + unmute
@@ -66,6 +136,9 @@ async function finalizeIntro(
 
   // Delete welcome message from Welcome topic
   await deleteWelcomeMessage(telegram, userId);
+
+  // Delete nag DM reminders
+  await deleteNagMessages(telegram, userId);
 }
 
 export function setup(bot: Telegraf): void {
@@ -116,7 +189,7 @@ export function setup(bot: Telegraf): void {
     }
   });
 
-  // Handle NS yes/no callback buttons
+  // Handle NS yes/no callback buttons (user answering the NS question)
   bot.on("callback_query", async (ctx, next) => {
     if (!("data" in ctx.callbackQuery)) return next();
     const data = ctx.callbackQuery.data;
@@ -127,6 +200,8 @@ export function setup(bot: Telegraf): void {
     if (!state || state.step !== "AWAITING_NS") return next();
 
     await ctx.answerCbQuery();
+
+    const claimedNs = data === "ns:yes";
 
     try {
       await finalizeIntro(
@@ -139,6 +214,12 @@ export function setup(bot: Telegraf): void {
 
       const msg = data === "ns:yes"
         ? "Your introduction has been posted! You've been flagged as an NS long-termer. You can now chat freely in the group."
+        ctx.from.first_name,
+        claimedNs,
+      );
+
+      const msg = claimedNs
+        ? "Your introduction has been posted! Your NS long-termer claim has been sent to admins for verification. You can now chat freely in the group."
         : "Your introduction has been posted! You can now chat freely in the group.";
       await ctx.editMessageText(msg);
     } catch (err) {
@@ -147,6 +228,44 @@ export function setup(bot: Telegraf): void {
     }
 
     introState.delete(userId);
+  });
+
+  // Handle admin NS verification callbacks
+  bot.on("callback_query", async (ctx, next) => {
+    if (!("data" in ctx.callbackQuery)) return next();
+    const data = ctx.callbackQuery.data;
+    if (!data.startsWith("nsv:")) return next();
+
+    await ctx.answerCbQuery();
+
+    const parts = data.split(":");
+    const action = parts[1]; // "yes" or "no"
+    const targetUserId = parseInt(parts[2], 10);
+    const adminName = ctx.from.first_name || String(ctx.from.id);
+
+    const originalText =
+      ctx.callbackQuery.message && "text" in ctx.callbackQuery.message
+        ? ctx.callbackQuery.message.text
+        : "";
+
+    if (action === "yes") {
+      try {
+        await flagNsLongtimer(targetUserId);
+        console.log(`NS long-termer approved: ${targetUserId} by admin ${ctx.from.id}`);
+        await ctx.editMessageText(
+          `${originalText}\n\n✅ Approved by ${adminName}`,
+        );
+      } catch (err) {
+        await ctx.editMessageText(
+          `${originalText}\n\n❌ Failed to approve: ${(err as Error).message}`,
+        );
+      }
+    } else {
+      console.log(`NS long-termer rejected: ${targetUserId} by admin ${ctx.from.id}`);
+      await ctx.editMessageText(
+        `${originalText}\n\n❌ Rejected by ${adminName}`,
+      );
+    }
   });
 
   // Collect intro text in private chats
@@ -160,7 +279,7 @@ export function setup(bot: Telegraf): void {
     // If waiting for NS answer as text fallback
     if (state.step === "AWAITING_NS") {
       const answer = ctx.message.text.trim().toLowerCase();
-      const isYes = answer === "yes" || answer === "y";
+      const claimedNs = answer === "yes" || answer === "y";
 
       try {
         await finalizeIntro(
@@ -168,11 +287,12 @@ export function setup(bot: Telegraf): void {
           userId,
           state.introText,
           ctx.from.username,
-          isYes,
+          ctx.from.first_name,
+          claimedNs,
         );
 
-        const msg = isYes
-          ? "Your introduction has been posted! You've been flagged as an NS long-termer. You can now chat freely in the group."
+        const msg = claimedNs
+          ? "Your introduction has been posted! Your NS long-termer claim has been sent to admins for verification. You can now chat freely in the group."
           : "Your introduction has been posted! You can now chat freely in the group.";
         await ctx.reply(msg);
       } catch (err) {

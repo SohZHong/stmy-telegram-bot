@@ -414,7 +414,7 @@ export async function handleCallback(
       "",
       `<b>Alert Threshold:</b> ${alert ?? "3"} pending reports`,
       `<b>Auto-ban Threshold:</b> ${autoban ?? "0"} (${(autoban ?? "0") === "0" ? "disabled" : "enabled"})`,
-      `<b>Designated Admin:</b> ${admin && admin !== "0" ? admin : "All admins"}`,
+      `<b>Designated Admin:</b> ${admin && admin !== "0" ? escapeHtml(await resolveUser(admin, ctx.telegram)) : "All admins"}`,
       `<b>Cooldown:</b> ${cooldown ?? "24"} hours`,
     ];
 
@@ -608,9 +608,13 @@ export async function handleText(
       );
     } else {
       await setSetting("report_designated_admin", String(val), userId);
+      const label = await resolveUser(String(val), ctx.telegram);
       await ctx.reply(
-        `Designated admin set to ${val}.`,
-        Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
+        `Designated admin set to ${escapeHtml(label)}.`,
+        {
+          parse_mode: "HTML",
+          ...Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
+        },
       );
     }
     return true;

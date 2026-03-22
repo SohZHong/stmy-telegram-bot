@@ -1,5 +1,6 @@
 import { Telegraf } from "telegraf";
 import { config } from "../config";
+import { answerContactQuery } from "../services/llm";
 
 const TRIGGER_WORDS = [
   "who",

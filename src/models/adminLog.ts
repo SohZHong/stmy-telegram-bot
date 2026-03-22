@@ -20,8 +20,12 @@ export type AdminLogAction =
   | "add_report_reason"
   | "edit_report_reason"
   | "delete_report_reason"
+<<<<<<< HEAD
   | "add_whitelisted_domain"
   | "delete_whitelisted_domain";
+=======
+  | "delete_member";
+>>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
 
 export interface AdminLog {
   id: number;

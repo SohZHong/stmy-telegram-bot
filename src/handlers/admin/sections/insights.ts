@@ -132,7 +132,11 @@ export async function handleText(
   try {
     const members = await getAllMembers();
     await ctx.reply("⏳ Analyzing member data...");
+<<<<<<< HEAD
     const answer = await answerMembersQuestion(text, members as unknown as Record<string, unknown>[]);
+=======
+    const answer = await answerMembersQuestion(text, members);
+>>>>>>> 49d337abc50cf025c4ce05051e124316cf44325d
     await ctx.reply(
       `👥 ${answer}`,
       Markup.inlineKeyboard([[backButton("a:ai")]]),
