@@ -9,6 +9,9 @@ const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}! Click below to introdu
 // Track welcome message IDs so introFlow can delete them after completion
 export const welcomeMessageIds = new Map<number, { chatId: number; messageId: number }>();
 
+// Deduplication: prevent both new_chat_members and chat_member from processing the same join
+const recentlyProcessed = new Set<number>();
+
 async function handleNewMember(
   telegram: import("telegraf").Telegram,
   botUsername: string,
@@ -16,6 +19,9 @@ async function handleNewMember(
   member: { id: number; is_bot: boolean; username?: string; first_name?: string },
 ): Promise<void> {
   if (member.is_bot) return;
+  if (recentlyProcessed.has(member.id)) return;
+  recentlyProcessed.add(member.id);
+  setTimeout(() => recentlyProcessed.delete(member.id), 10_000);
 
   const existing = await getMember(member.id);
 

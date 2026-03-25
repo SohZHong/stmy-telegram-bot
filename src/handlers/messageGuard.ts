@@ -3,10 +3,22 @@ import { config } from "../config";
 import { getMember, upsertMember, markIntroCompleted } from "../models/member";
 
 const REMINDER_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const NAG_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const lastReminderTime = new Map<number, number>();
 
 // Track nag DM message IDs so introFlow can delete them after completion
-export const nagMessageIds = new Map<number, number[]>();
+export const nagMessageIds = new Map<number, { ids: number[]; firstAt: number }>();
+
+// Periodically clean up stale entries (users who never completed intro)
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, entry] of nagMessageIds) {
+    if (now - entry.firstAt > NAG_TTL_MS) {
+      nagMessageIds.delete(userId);
+      lastReminderTime.delete(userId);
+    }
+  }
+}, 60 * 60 * 1000); // Run hourly
 
 export function setup(bot: Telegraf): void {
   bot.on("message", async (ctx, next) => {
@@ -66,9 +78,9 @@ export function setup(bot: Telegraf): void {
             userId,
             'Your message was removed because you haven\'t introduced yourself yet. Please go to the Welcome topic and click the "Start Introduction" button to introduce yourself!',
           );
-          const ids = nagMessageIds.get(userId) ?? [];
-          ids.push(sent.message_id);
-          nagMessageIds.set(userId, ids);
+          const entry = nagMessageIds.get(userId) ?? { ids: [], firstAt: Date.now() };
+          entry.ids.push(sent.message_id);
+          nagMessageIds.set(userId, entry);
         } catch {
           // User hasn't started the bot then nothing we can do
         }

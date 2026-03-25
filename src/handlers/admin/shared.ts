@@ -19,7 +19,6 @@ export type AdminAction =
   | { type: "AWAITING_RR_EDIT"; reasonId: number }
   | { type: "AWAITING_RPT_ALERT" }
   | { type: "AWAITING_RPT_AUTOBAN" }
-  | { type: "AWAITING_RPT_ADMIN" }
   | { type: "AWAITING_RPT_COOLDOWN" }
   | { type: "AWAITING_MAI_Q" }
   | { type: "AWAITING_WD_ADD" };

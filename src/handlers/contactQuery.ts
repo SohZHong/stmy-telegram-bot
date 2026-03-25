@@ -33,6 +33,7 @@ export function setup(bot: Telegraf): void {
   bot.on("message", async (ctx, next) => {
     if (ctx.chat.type !== "supergroup" && ctx.chat.type !== "group")
       return next();
+    if (ctx.chat.id !== config.mainGroupId) return next();
     if (!("text" in ctx.message) || !ctx.message.text) return next();
     if (!config.openaiApiKey) return next();
 

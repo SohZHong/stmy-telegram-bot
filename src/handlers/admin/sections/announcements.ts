@@ -4,6 +4,7 @@ import { adminState, backButton } from "../shared";
 import { config } from "../../../config";
 import { createAdminLog } from "../../../models/adminLog";
 import { postToClosedTopic } from "../../../permissions";
+import { escapeHtml } from "../../../utils/format";
 
 const pendingAnnouncement = new Map<number, string>();
 const pendingSender = new Map<number, string>();
@@ -54,7 +55,7 @@ export async function handleCallback(
     pendingAnnouncement.delete(userId);
     const sender = pendingSender.get(userId) ?? String(userId);
     pendingSender.delete(userId);
-    const text = `<b>Announcement by ${sender}</b>\n\n${message}`;
+    const text = `<b>Announcement by ${escapeHtml(sender)}</b>\n\n${escapeHtml(message)}`;
 
     const admins = await ctx.telegram.getChatAdministrators(
       config.mainGroupId,
@@ -115,7 +116,7 @@ export async function handleCallback(
     pendingAnnouncement.delete(userId);
     const sender = pendingSender.get(userId) ?? String(userId);
     pendingSender.delete(userId);
-    const text = `<b>Announcement by ${sender}</b>\n\n${message}`;
+    const text = `<b>Announcement by ${escapeHtml(sender)}</b>\n\n${escapeHtml(message)}`;
 
     try {
       await postToClosedTopic(
@@ -187,7 +188,7 @@ export async function handleText(
   buttons.push([Markup.button.callback("Cancel", "a:ann:cancel")]);
 
   await ctx.reply(
-    `<b>Preview</b>\n\n<b>Announcement by ${sender}</b>\n\n${text}`,
+    `<b>Preview</b>\n\n<b>Announcement by ${escapeHtml(sender)}</b>\n\n${escapeHtml(text)}`,
     {
       parse_mode: "HTML",
       ...Markup.inlineKeyboard(buttons),

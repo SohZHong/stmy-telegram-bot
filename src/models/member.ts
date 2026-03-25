@@ -71,14 +71,16 @@ export async function countPendingMembers(): Promise<number> {
 
 export async function searchMembers(query: string): Promise<Member[]> {
   const cleaned = query.replace(/^@/, "");
+  // Escape ILIKE wildcards in user input
+  const escaped = cleaned.replace(/[%_\\]/g, "\\$&");
   const { rows } = await pool.query<Member>(
     `SELECT * FROM members
      WHERE telegram_id::text = $1
-        OR username ILIKE '%' || $2 || '%'
-        OR first_name ILIKE '%' || $2 || '%'
+        OR username ILIKE '%' || $2 || '%' ESCAPE '\\'
+        OR first_name ILIKE '%' || $2 || '%' ESCAPE '\\'
      ORDER BY joined_at DESC
      LIMIT 10`,
-    [cleaned, cleaned],
+    [cleaned, escaped],
   );
   return rows;
 }

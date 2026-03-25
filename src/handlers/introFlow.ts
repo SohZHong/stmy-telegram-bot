@@ -10,6 +10,7 @@ import { escapeHtml } from "../utils/format";
 import { validateIntro, generateIntro } from "../services/llm";
 import { welcomeMessageIds } from "./newMember";
 import { nagMessageIds } from "./messageGuard";
+import { isAdminById } from "./admin/auth";
 
 const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}!";
 
@@ -38,9 +39,9 @@ async function deleteNagMessages(
   telegram: import("telegraf").Telegram,
   userId: number,
 ): Promise<void> {
-  const msgIds = nagMessageIds.get(userId);
-  if (msgIds) {
-    for (const msgId of msgIds) {
+  const entry = nagMessageIds.get(userId);
+  if (entry) {
+    for (const msgId of entry.ids) {
       try {
         await telegram.deleteMessage(userId, msgId);
       } catch {
@@ -241,6 +242,12 @@ export function setup(bot: Telegraf): void {
     if (!("data" in ctx.callbackQuery)) return next();
     const data = ctx.callbackQuery.data;
     if (!data.startsWith("nsv:")) return next();
+
+    // Verify the user is an admin before allowing NS verification
+    if (!(await isAdminById(ctx.telegram, ctx.from.id))) {
+      await ctx.answerCbQuery("Only admins can verify NS claims.");
+      return;
+    }
 
     await ctx.answerCbQuery();
 

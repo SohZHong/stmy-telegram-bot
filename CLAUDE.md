@@ -80,6 +80,7 @@ Every callback query uses a namespaced prefix to avoid collisions. Check this li
 | `ns:` | Intro flow (user) | `ns:yes`, `ns:no` |
 | `nsv:` | Intro flow (admin verify) | `nsv:yes:USERID`, `nsv:no:USERID` |
 | `a:wd:` | Whitelisted domains section | `a:wd:list:0`, `a:wd:add`, `a:wd:v:ID`, `a:wd:rm:ID` |
+| `a:dlg:` | Delegation section | `a:dlg:ns`, `a:dlg:link`, `a:dlg:rpt`, `a:dlg:ns:ID` |
 | `dellink_` | Link safeguard | `dellink_CHATID_MSGID` |
 
 **Pattern:** Use `data.startsWith("prefix")` to detect, then `data.split(":")` or `data.split("_")` to extract IDs.
@@ -171,7 +172,7 @@ npm run migrate                             # Runs pending migrations
 ## Gotchas
 
 - **Topic filters:** `messageGuard` skips intro + welcome topics. `linkSafeguard` skips admin topic. New message handlers in the main group should consider which topics they apply to.
-- **No circular imports:** Handlers import from models/services/shared, never from each other (except `introFlow` importing `welcomeMessageIds` from `newMember` and `nagMessageIds` from `messageGuard` — the two allowed cross-handler imports).
+- **No circular imports:** Handlers import from models/services/shared, never from each other (except four allowed cross-handler imports: `introFlow` imports `welcomeMessageIds` from `newMember` and `nagMessageIds` from `messageGuard`; `groupCommands` imports `welcomeMessageIds` from `newMember` for `/testjoin`; `insights` imports `messageBuffer` from `messageTracker` for chat summaries/activity).
 - **Allowed updates:** `bot.launch()` explicitly sets `allowedUpdates` to include `chat_member` for dual new member detection. Adding new update types requires updating this list in `index.ts`.
 - **Startup posts:** `ensureAdminGuide` and `ensureReportPost` are wrapped in try-catch and skipped when `mainGroupId` is 0. New startup posts should follow this pattern.
 - **Service messages:** `messageGuard` explicitly skips `new_chat_members` / `left_chat_member` to avoid processing join/leave events as regular messages. New group message handlers should do the same if they delete or act on messages.

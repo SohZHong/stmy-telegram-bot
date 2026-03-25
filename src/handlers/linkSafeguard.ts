@@ -2,10 +2,21 @@ import { Markup, Telegraf } from "telegraf";
 import { config } from "../config";
 import { isDomainWhitelisted } from "../models/whitelistedDomain";
 import { getSetting } from "../models/settings";
+import { isAdminById } from "./admin/auth";
 
 // Track warning message IDs so we can delete them when the link is removed
 // key: "chatId_linkMsgId" → value: warningMsgId
+const MAX_WARNING_ENTRIES = 1000;
 const warningMessages = new Map<string, number>();
+
+function trackWarning(key: string, msgId: number): void {
+  // Evict oldest entries if map grows too large
+  if (warningMessages.size >= MAX_WARNING_ENTRIES) {
+    const firstKey = warningMessages.keys().next().value;
+    if (firstKey) warningMessages.delete(firstKey);
+  }
+  warningMessages.set(key, msgId);
+}
 
 async function notifyLinkAdmins(
   telegram: import("telegraf").Telegram,
@@ -107,7 +118,7 @@ export function setup(bot: Telegraf): void {
       );
 
       // Store warning message ID for cleanup
-      warningMessages.set(`${chatId}_${msgId}`, warning.message_id);
+      trackWarning(`${chatId}_${msgId}`, warning.message_id);
     } catch (err) {
       console.error("Failed to post link warning:", (err as Error).message);
     }
@@ -147,6 +158,12 @@ export function setup(bot: Telegraf): void {
     if (!("data" in ctx.callbackQuery)) return next();
     const data = ctx.callbackQuery.data;
     if (!data.startsWith("dellink_")) return next();
+
+    // Verify the user is an admin before allowing message deletion
+    if (!(await isAdminById(ctx.telegram, ctx.from.id))) {
+      await ctx.answerCbQuery("Only admins can delete messages.");
+      return;
+    }
 
     await ctx.answerCbQuery();
 

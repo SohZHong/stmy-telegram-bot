@@ -590,36 +590,6 @@ export async function handleText(
     return true;
   }
 
-  if (state.type === "AWAITING_RPT_ADMIN") {
-    adminState.delete(userId);
-    const val = parseInt(text, 10);
-    if (isNaN(val) || val < 0) {
-      await ctx.reply(
-        "Please enter a valid Telegram ID (0 = notify all admins).",
-        Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
-      );
-      return true;
-    }
-    if (val === 0) {
-      await setSetting("report_designated_admin", "0", userId);
-      await ctx.reply(
-        "Designated admin cleared. All admins will be notified.",
-        Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
-      );
-    } else {
-      await setSetting("report_designated_admin", String(val), userId);
-      const label = await resolveUser(String(val), ctx.telegram);
-      await ctx.reply(
-        `Designated admin set to ${escapeHtml(label)}.`,
-        {
-          parse_mode: "HTML",
-          ...Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
-        },
-      );
-    }
-    return true;
-  }
-
   if (state.type === "AWAITING_RPT_COOLDOWN") {
     adminState.delete(userId);
     const val = parseInt(text, 10);
