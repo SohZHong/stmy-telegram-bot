@@ -21,7 +21,8 @@ export type AdminAction =
   | { type: "AWAITING_RPT_AUTOBAN" }
   | { type: "AWAITING_RPT_ADMIN" }
   | { type: "AWAITING_RPT_COOLDOWN" }
-  | { type: "AWAITING_MAI_Q" };
+  | { type: "AWAITING_MAI_Q" }
+  | { type: "AWAITING_WD_ADD" };
 
 // Log display utility
 export const ACTION_ALIASES: Record<string, AdminLogAction> = {
@@ -44,6 +45,8 @@ export const ACTION_ALIASES: Record<string, AdminLogAction> = {
   add_rr: "add_report_reason",
   edit_rr: "edit_report_reason",
   del_rr: "delete_report_reason",
+  add_wd: "add_whitelisted_domain",
+  del_wd: "delete_whitelisted_domain",
   del_mem: "delete_member",
 };
 
@@ -67,6 +70,8 @@ const ACTION_LABELS: Record<string, string> = {
   add_report_reason: "Add RR",
   edit_report_reason: "Edit RR",
   delete_report_reason: "Del RR",
+  add_whitelisted_domain: "Add WD",
+  delete_whitelisted_domain: "Del WD",
   delete_member: "Del Member",
 };
 
@@ -86,6 +91,7 @@ export const ADMIN_HELP_BODY = [
   "• <b>Blocked Words</b> — Manage words blocked from intro submissions",
   "• <b>Reports</b> — View reports, manage report reasons, and configure thresholds",
   "• <b>AI Insights</b> — Chat summary, activity leaderboard, member AI queries",
+  "• <b>Whitelisted Domains</b> — Manage domains exempt from link safety warnings",
   "• <b>Delegation</b> — Assign a specific admin for NS verification, link alerts, and report notifications",
   "• <b>Logs</b> — Browse admin action logs with filters and pagination",
   "",

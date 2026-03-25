@@ -14,6 +14,7 @@ import * as announcements from "./sections/announcements";
 import * as adminGuide from "./sections/adminGuide";
 import * as reports from "./sections/reports";
 import * as insights from "./sections/insights";
+import * as whitelistedDomains from "./sections/whitelistedDomains";
 import * as delegation from "./sections/delegation";
 
 const sections: {
@@ -40,24 +41,43 @@ const sections: {
   announcements,
   reports,
   insights,
+  whitelistedDomains,
   delegation,
 ];
 
 const HELP_TEXT = "<b>Admin Menu Help</b>\n\n" + ADMIN_HELP_BODY;
 
+const MENU_TEXT = [
+  "<b>Admin Panel</b>",
+  "",
+  "<b>People</b> — Members, bans, reports",
+  "<b>Content</b> — Messages, guides, words",
+  "<b>Insights</b> — Stats, logs, AI",
+  "<b>Settings</b> — Domains, delegation",
+].join("\n");
+
 function mainMenuKeyboard() {
   return Markup.inlineKeyboard([
-    [Markup.button.callback("Members", "a:mem")],
-    [Markup.button.callback("Ban / Kick", "a:ban")],
-    [Markup.button.callback("Welcome Messages", "a:wm")],
-    [Markup.button.callback("Intro Guide", "a:ig")],
-    [Markup.button.callback("Admin Guide", "a:ag")],
-    [Markup.button.callback("Stats", "a:stats")],
-    [Markup.button.callback("Blocked Words", "a:bw")],
-    [Markup.button.callback("Announcements", "a:ann")],
+    [
+      Markup.button.callback("Members", "a:mem"),
+      Markup.button.callback("Ban / Kick", "a:ban"),
+    ],
     [Markup.button.callback("Reports", "a:rpt")],
-    [Markup.button.callback("Logs", "a:log")],
+    [
+      Markup.button.callback("Welcome Msgs", "a:wm"),
+      Markup.button.callback("Intro Guide", "a:ig"),
+    ],
+    [
+      Markup.button.callback("Admin Guide", "a:ag"),
+      Markup.button.callback("Blocked Words", "a:bw"),
+    ],
+    [Markup.button.callback("Announcements", "a:ann")],
+    [
+      Markup.button.callback("Stats", "a:stats"),
+      Markup.button.callback("Logs", "a:log"),
+    ],
     [Markup.button.callback("AI Insights", "a:ai")],
+    [Markup.button.callback("Whitelisted Domains", "a:wd")],
     [Markup.button.callback("Delegation", "a:dlg")],
     [Markup.button.callback("Help", "a:help")],
   ]);
@@ -76,7 +96,7 @@ export function setup(bot: Telegraf): void {
     }
 
     adminState.delete(userId);
-    await ctx.reply("Admin Menu", mainMenuKeyboard());
+    await ctx.reply(MENU_TEXT, { parse_mode: "HTML", ...mainMenuKeyboard() });
   });
 
   // Callback query router
@@ -99,7 +119,7 @@ export function setup(bot: Telegraf): void {
       // Main menu
       if (data === "a:main") {
         adminState.delete(userId);
-        await ctx.editMessageText("Admin Menu", mainMenuKeyboard());
+        await ctx.editMessageText(MENU_TEXT, { parse_mode: "HTML", ...mainMenuKeyboard() });
         return;
       }
 

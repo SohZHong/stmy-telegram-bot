@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { config } from "../config";
 import type { Member } from "../models/member";
 
-const MODEL = "gpt-5-mini";
+const MODEL = "gpt-4o-mini";
 
 let client: OpenAI | null = null;
 
@@ -52,6 +52,54 @@ Respond in JSON format:
 
   const result = JSON.parse(response.choices[0].message.content ?? "{}");
   return { valid: result.valid ?? true, reason: result.reason ?? "" };
+}
+
+export async function generateIntro(
+  rawText: string,
+  name: string,
+): Promise<string> {
+  const c = getClient();
+  const response = await c.chat.completions.create({
+    model: MODEL,
+    messages: [
+      {
+        role: "user",
+        content: `You are writing a welcome introduction for a new member joining the Superteam MY community.
+
+The member's name is: ${name}
+
+They submitted this raw introduction:
+"${rawText}"
+
+Rewrite it into a polished, structured welcome intro following this format. Vary the tone, wording, and emoji usage each time so it feels fresh and human — sometimes enthusiastic, sometimes chill, sometimes witty. Mix it up.
+
+Structure:
+Hey everyone! Let's welcome [Name]
+
+[1-2 sentences about who they are and what they do, written naturally]
+
+Based in [location if mentioned]
+
+Fun fact: [their fun fact if mentioned]
+
+Looking to contribute by:
+- [break their contribution into bullet points if multiple ideas, or single bullet if one thing]
+
+[Short friendly closing line encouraging people to connect]
+
+Rules:
+- Use their actual name, no brackets or placeholders in the output
+- Vary your opening greeting, emoji choices, and closing line
+- If they didn't mention a particular field (location, fun fact, contribution), skip that section entirely — do NOT make things up
+- Keep it warm and community-oriented
+- Do NOT wrap in quotes or add meta-commentary
+- Output plain text (no HTML or Markdown formatting)`,
+      },
+    ],
+    temperature: 0.9,
+  });
+
+  return response.choices[0].message.content?.trim() ?? rawText;
 }
 
 export async function summarizeMessages(

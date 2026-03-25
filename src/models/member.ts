@@ -1,5 +1,7 @@
 import { pool } from "../db/database";
 
+export type MemberStatus = "lurker" | "contributor" | "member";
+
 export interface Member {
   id: number;
   telegram_id: string;
@@ -8,6 +10,7 @@ export interface Member {
   group_id: string;
   intro_completed: boolean;
   is_ns_longtimer: boolean;
+  status: MemberStatus;
   joined_at: Date;
   intro_completed_at: Date | null;
 }
@@ -116,7 +119,14 @@ export async function getAllMembers(): Promise<Member[]> {
 
 export async function flagNsLongtimer(telegramId: number): Promise<void> {
   await pool.query(
-    `UPDATE members SET is_ns_longtimer = TRUE WHERE telegram_id = $1`,
+    `UPDATE members SET is_ns_longtimer = TRUE, status = 'contributor' WHERE telegram_id = $1`,
     [telegramId],
+  );
+}
+
+export async function setMemberStatus(telegramId: number, status: MemberStatus): Promise<void> {
+  await pool.query(
+    `UPDATE members SET status = $2 WHERE telegram_id = $1`,
+    [telegramId, status],
   );
 }

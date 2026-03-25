@@ -79,6 +79,7 @@ Every callback query uses a namespaced prefix to avoid collisions. Check this li
 | `r:` | Report flow | `r:sel:ID`, `r:reason:ID`, `r:confirm` |
 | `ns:` | Intro flow (user) | `ns:yes`, `ns:no` |
 | `nsv:` | Intro flow (admin verify) | `nsv:yes:USERID`, `nsv:no:USERID` |
+| `a:wd:` | Whitelisted domains section | `a:wd:list:0`, `a:wd:add`, `a:wd:v:ID`, `a:wd:rm:ID` |
 | `dellink_` | Link safeguard | `dellink_CHATID_MSGID` |
 
 **Pattern:** Use `data.startsWith("prefix")` to detect, then `data.split(":")` or `data.split("_")` to extract IDs.
@@ -124,9 +125,14 @@ Member joins group
 Member clicks "Start Introduction" → DM with /start intro
   → introFlow.ts: collect intro text, validate (blocked words, length, LLM if configured)
   → Ask NS long-termer question (yes/no buttons)
-  → finalizeIntro(): post to intro topic (via postToClosedTopic), markIntroCompleted(), unmuteUser()
+  → finalizeIntro(): AI-rewrite intro (if OPENAI_API_KEY set), post to intro topic (via postToClosedTopic), markIntroCompleted(), unmuteUser()
   → If claimed NS: notify admins (or ns_designated_admin) with approve/reject buttons (nsv:yes/nsv:no)
   → Delete welcome message from Welcome topic
+  → Delete nag DM reminders
+
+Fallback: chat_member event (ChatMemberUpdate)
+  → newMember.ts: handles left/kicked → member/restricted transitions
+  → Deduplicates with new_chat_members (skips if member already in DB)
 
 Pre-existing member posts (not in DB)
   → messageGuard.ts: auto-register + mark as introduced (grandfathered in)
@@ -145,6 +151,7 @@ All LLM features are optional. When `OPENAI_API_KEY` is empty:
 | Feature | Behavior |
 |---------|----------|
 | Intro LLM validation | Skipped — `if (config.openaiApiKey)` guard. Basic checks (length, blocked words, repeating chars) still apply |
+| Intro AI generation | Skipped — raw user text posted as-is instead of polished rewrite |
 | Contact auto-reply | Handler returns `next()` immediately — no response posted |
 | AI Insights (admin) | Buttons still visible but calls will error with "OPENAI_API_KEY not configured" message shown to admin |
 
@@ -164,7 +171,8 @@ npm run migrate                             # Runs pending migrations
 ## Gotchas
 
 - **Topic filters:** `messageGuard` skips intro + welcome topics. `linkSafeguard` skips admin topic. New message handlers in the main group should consider which topics they apply to.
-- **No circular imports:** Handlers import from models/services/shared, never from each other (except `introFlow` importing `welcomeMessageIds` from `newMember` — the one allowed cross-handler import).
+- **No circular imports:** Handlers import from models/services/shared, never from each other (except `introFlow` importing `welcomeMessageIds` from `newMember` and `nagMessageIds` from `messageGuard` — the two allowed cross-handler imports).
+- **Allowed updates:** `bot.launch()` explicitly sets `allowedUpdates` to include `chat_member` for dual new member detection. Adding new update types requires updating this list in `index.ts`.
 - **Startup posts:** `ensureAdminGuide` and `ensureReportPost` are wrapped in try-catch and skipped when `mainGroupId` is 0. New startup posts should follow this pattern.
 - **Service messages:** `messageGuard` explicitly skips `new_chat_members` / `left_chat_member` to avoid processing join/leave events as regular messages. New group message handlers should do the same if they delete or act on messages.
 

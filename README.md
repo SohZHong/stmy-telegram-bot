@@ -11,12 +11,15 @@ Telegram onboarding and moderation bot for Superteam MY. Automatically mutes new
 - **Announcements** — broadcast messages to admin DMs or post to a dedicated announcements topic
 - **Auto-setup on startup** — admin guide and report button are automatically posted and pinned on first boot
 - **Late bot addition** — existing group members are automatically registered when they first send a message
-- **Link safeguard** — auto-detects links in group messages, posts a safety warning, and DMs admins with a one-tap delete button
+- **Link safeguard** — auto-detects links in group messages, posts a safety warning, and DMs admins with a one-tap delete button. Admin-managed domain whitelist skips warnings for trusted sites
+- **Whitelisted domains** — admin-managed list of trusted domains exempt from link safety warnings (subdomains included automatically)
 - **AI-powered features** (optional, requires `OPENAI_API_KEY`):
   - **Intro validation** — LLM checks if introductions are genuine before accepting
+  - **Intro generation** — LLM rewrites raw intro text into a polished, structured welcome message
   - **Contact auto-reply** — answers "who to contact" questions in group chat
   - **AI Insights** — chat summary, activity leaderboard, and natural-language member queries for admins
 - **NS long-termer verification** — new members can claim NS long-termer status; admins receive a verification request with approve/reject buttons
+- **Member status tracking** — members have a status (lurker/contributor/member) tracked in the database; NS long-termers are auto-promoted to contributor
 - **Delegation** — assign a specific admin to receive notifications for NS verification, link alerts, or reports (defaults to all admins)
 - **Action logging** — all admin actions are logged and browsable with filters
 
@@ -30,8 +33,9 @@ Telegram onboarding and moderation bot for Superteam MY. Automatically mutes new
 4. The bot sends the welcome message + intro guide and asks the user to type their introduction
 5. The introduction is validated (minimum length, no repeating characters, no blocked words, and optionally LLM validation if `OPENAI_API_KEY` is set)
 6. The bot asks if the user is an NS long-termer (yes/no). If they claim yes, admins are notified for verification
-7. The bot posts the formatted introduction in the **Introduction topic** on their behalf, marks them as introduced, **unmutes** them, and deletes the welcome message from the Welcome topic
-8. The user can now post freely in all group topics
+7. If `OPENAI_API_KEY` is set, the bot rewrites the raw intro into a polished, structured welcome message. Otherwise, posts the user's original text
+8. The bot posts the introduction in the **Introduction topic** on their behalf, marks them as introduced, **unmutes** them, and deletes the welcome message from the Welcome topic
+9. The user can now post freely in all group topics
 
 Mute/unmute is handled by `src/permissions.ts` via Telegram's `restrictChatMember` API. The messageGuard acts as a secondary layer, deleting messages from non-introduced users and sending a rate-limited DM reminder. If the bot is added to an existing group, members who were already in the group are automatically registered with their intro marked as complete when they first send a message, no action required from existing members.
 
@@ -54,21 +58,22 @@ src/
   permissions.ts           # Centralized mute/unmute via Telegram restrictChatMember
   index.ts                 # Bot entrypoint — registers handlers, runs migrations, starts bot
   services/
-    llm.ts                 # Centralized OpenAI wrapper (intro validation, summaries, contact queries)
+    llm.ts                 # Centralized OpenAI wrapper (intro validation, intro generation, summaries, contact queries)
   db/
     database.ts            # PostgreSQL connection pool and close()
     migrate.ts             # Programmatic migration runner (also works standalone)
     migrations/            # Ordered SQL migrations run by node-pg-migrate
   models/
-    member.ts              # Member queries (upsert, get, search, mark intro, stats, NS flag)
+    member.ts              # Member queries (upsert, get, search, mark intro, stats, NS flag, status)
     settings.ts            # Key-value settings (get, set with upsert)
     adminLog.ts            # Admin action log queries and action type definitions
     welcomeMessage.ts      # Welcome message CRUD
     blockedWord.ts         # Blocked word CRUD
     reportReason.ts        # Report reason CRUD
     report.ts              # Report queries (create, count, search, status updates)
+    whitelistedDomain.ts   # Whitelisted domain CRUD and subdomain matching
   handlers/
-    newMember.ts           # Listens for new_chat_members — posts welcome button in Welcome topic
+    newMember.ts           # Listens for new_chat_members + chat_member — posts welcome button in Welcome topic
     introFlow.ts           # DM-based intro collection (/start intro deep link) + NS verification
     reportFlow.ts          # DM-based report flow (/start report deep link)
     messageGuard.ts        # Blocks non-introduced users; auto-registers existing members
@@ -94,6 +99,7 @@ src/
         announcements.ts   # Announcement broadcast / topic post
         reports.ts         # Report reasons CRUD, view reports, report settings
         insights.ts        # AI Insights — chat summary, activity leaderboard, member AI queries
+        whitelistedDomains.ts # Whitelisted domain CRUD for link safeguard
         delegation.ts      # Delegation settings — NS verification, link alerts, reports
   utils/
     format.ts              # escapeHtml, truncate
@@ -166,7 +172,7 @@ docker-compose up -d
 
 Only group admins can use these commands (except `/setup` which works for anyone). Group admins are protected from all moderation actions (ban, kick, intro reset, approve) and the bot will show a warning if an admin tries to moderate another admin.
 
-**Log type aliases:** `approve`, `ban`, `kick`, `reset`, `add_wm`, `edit_wm`, `del_wm`, `edit_ig`, `edit_ag`, `add_bw`, `edit_bw`, `del_bw`, `announce`, `report`, `autoban_rpt`, `dismiss_rpt`, `add_rr`, `edit_rr`, `del_rr`
+**Log type aliases:** `approve`, `ban`, `kick`, `reset`, `add_wm`, `edit_wm`, `del_wm`, `edit_ig`, `edit_ag`, `add_bw`, `edit_bw`, `del_bw`, `announce`, `report`, `autoban_rpt`, `dismiss_rpt`, `add_rr`, `edit_rr`, `del_rr`, `add_wd`, `del_wd`, `del_mem`
 
 ### DM admin menu
 
@@ -183,6 +189,7 @@ Open via the deep link `t.me/{bot}?start=admin` (group admins only). Provides an
 - **Reports** — report reasons CRUD, view/dismiss/ban reported users, configure thresholds
 - **Logs** — browse admin action logs with filters and pagination
 - **AI Insights** — chat summary, activity leaderboard, natural-language member queries (requires `OPENAI_API_KEY`)
+- **Whitelisted Domains** — manage trusted domains exempt from link safety warnings
 - **Delegation** — assign a specific admin to receive NS verification requests, link alerts, or report notifications (default: all admins)
 - **Help** — view available commands and menu section descriptions
 
