@@ -6,8 +6,12 @@ import { handleStartupError } from "./errors";
 import { setupCommands as setupAdmin, setupMenu as setupAdminMenu, ensureAdminGuide } from "./handlers/admin";
 import { setup as setupReportFlow, ensureReportPost } from "./handlers/reportFlow";
 import { setup as setupIntroFlow } from "./handlers/introFlow";
+import { setup as setupGroupCommands } from "./handlers/groupCommands";
 import { setup as setupMessageGuard } from "./handlers/messageGuard";
 import { setup as setupNewMember } from "./handlers/newMember";
+import { setup as setupLinkSafeguard } from "./handlers/linkSafeguard";
+import { setup as setupMessageTracker } from "./handlers/messageTracker";
+import { setup as setupContactQuery } from "./handlers/contactQuery";
 
 const bot = new Telegraf(config.botToken);
 
@@ -19,19 +23,41 @@ setupAdminMenu(bot);
 setupReportFlow(bot);
 // Handles DM-based intro collection (private chats)
 setupIntroFlow(bot);
+// /setup command to discover chat/topic IDs, /testjoin for testing
+setupGroupCommands(bot);
 // Handles join events (posts welcome button)
 setupNewMember(bot);
 // Blocks non-introduced users in group
 setupMessageGuard(bot);
+// Link safety warnings + admin notification with delete button
+setupLinkSafeguard(bot);
+// Track group messages for summary and activity stats
+setupMessageTracker(bot);
+// Auto-reply to "who to contact" questions
+setupContactQuery(bot);
 
 async function start(): Promise<void> {
   await runMigrations(config.databaseUrl);
   console.log("Migrations complete");
 
-  await ensureAdminGuide(bot.telegram);
-  await ensureReportPost(bot.telegram);
+  if (config.mainGroupId) {
+    try {
+      await ensureAdminGuide(bot.telegram);
+    } catch (err) {
+      console.warn("Could not post admin guide (check MAIN_GROUP_ID / ADMIN_TOPIC_ID):", (err as Error).message);
+    }
+    try {
+      await ensureReportPost(bot.telegram);
+    } catch (err) {
+      console.warn("Could not post report button (check MAIN_GROUP_ID):", (err as Error).message);
+    }
+  } else {
+    console.warn("MAIN_GROUP_ID is 0 — skipping startup posts. Use /setup in your group to get the ID.");
+  }
 
-  bot.launch();
+  bot.launch({
+    allowedUpdates: ["message", "callback_query", "chat_member", "my_chat_member"],
+  });
   console.log("Bot started");
 }
 

@@ -1,5 +1,7 @@
 import { pool } from "../db/database";
 
+export type MemberStatus = "lurker" | "contributor" | "member";
+
 export interface Member {
   id: number;
   telegram_id: string;
@@ -7,6 +9,8 @@ export interface Member {
   first_name: string | null;
   group_id: string;
   intro_completed: boolean;
+  is_ns_longtimer: boolean;
+  status: MemberStatus;
   joined_at: Date;
   intro_completed_at: Date | null;
 }
@@ -66,15 +70,17 @@ export async function countPendingMembers(): Promise<number> {
 }
 
 export async function searchMembers(query: string): Promise<Member[]> {
-  // Try exact telegram_id match first, otherwise search by username/first_name
+  const cleaned = query.replace(/^@/, "");
+  // Escape ILIKE wildcards in user input
+  const escaped = cleaned.replace(/[%_\\]/g, "\\$&");
   const { rows } = await pool.query<Member>(
     `SELECT * FROM members
      WHERE telegram_id::text = $1
-        OR username ILIKE '%' || $2 || '%'
-        OR first_name ILIKE '%' || $2 || '%'
+        OR username ILIKE '%' || $2 || '%' ESCAPE '\\'
+        OR first_name ILIKE '%' || $2 || '%' ESCAPE '\\'
      ORDER BY joined_at DESC
      LIMIT 10`,
-    [query, query],
+    [cleaned, escaped],
   );
   return rows;
 }
@@ -106,4 +112,23 @@ export async function getMemberStats(): Promise<MemberStats> {
     FROM members
   `);
   return rows[0];
+}
+
+export async function getAllMembers(): Promise<Member[]> {
+  const { rows } = await pool.query<Member>(`SELECT * FROM members`);
+  return rows;
+}
+
+export async function flagNsLongtimer(telegramId: number): Promise<void> {
+  await pool.query(
+    `UPDATE members SET is_ns_longtimer = TRUE, status = 'contributor' WHERE telegram_id = $1`,
+    [telegramId],
+  );
+}
+
+export async function setMemberStatus(telegramId: number, status: MemberStatus): Promise<void> {
+  await pool.query(
+    `UPDATE members SET status = $2 WHERE telegram_id = $1`,
+    [telegramId, status],
+  );
 }

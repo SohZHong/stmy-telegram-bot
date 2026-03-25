@@ -414,7 +414,7 @@ export async function handleCallback(
       "",
       `<b>Alert Threshold:</b> ${alert ?? "3"} pending reports`,
       `<b>Auto-ban Threshold:</b> ${autoban ?? "0"} (${(autoban ?? "0") === "0" ? "disabled" : "enabled"})`,
-      `<b>Designated Admin:</b> ${admin && admin !== "0" ? admin : "All admins"}`,
+      `<b>Designated Admin:</b> ${admin && admin !== "0" ? escapeHtml(await resolveUser(admin, ctx.telegram)) : "All admins"}`,
       `<b>Cooldown:</b> ${cooldown ?? "24"} hours`,
     ];
 
@@ -587,32 +587,6 @@ export async function handleText(
       val === 0 ? "Auto-ban disabled." : `Auto-ban threshold set to ${val}.`,
       Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
     );
-    return true;
-  }
-
-  if (state.type === "AWAITING_RPT_ADMIN") {
-    adminState.delete(userId);
-    const val = parseInt(text, 10);
-    if (isNaN(val) || val < 0) {
-      await ctx.reply(
-        "Please enter a valid Telegram ID (0 = notify all admins).",
-        Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
-      );
-      return true;
-    }
-    if (val === 0) {
-      await setSetting("report_designated_admin", "0", userId);
-      await ctx.reply(
-        "Designated admin cleared. All admins will be notified.",
-        Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
-      );
-    } else {
-      await setSetting("report_designated_admin", String(val), userId);
-      await ctx.reply(
-        `Designated admin set to ${val}.`,
-        Markup.inlineKeyboard([[backButton("a:rpt:cfg")]]),
-      );
-    }
     return true;
   }
 

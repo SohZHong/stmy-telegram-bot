@@ -12,6 +12,8 @@ cp .env.example .env
 
 Fill in all required values (see [README.md](README.md#environment-variables) for the full list). The `DATABASE_URL` is overridden by `docker-compose.yml` to point at the `db` container, so you only need it set correctly for local development.
 
+Optionally set `OPENAI_API_KEY` and `PIC_HANDLES` to enable AI features (intro validation, contact auto-reply, chat summaries). The bot works fully without these — AI features simply won't activate.
+
 ### 2. Deploy
 
 ```bash
