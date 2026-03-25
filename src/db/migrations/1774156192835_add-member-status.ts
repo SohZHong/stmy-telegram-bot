@@ -4,7 +4,7 @@ import type { MigrationBuilder } from "node-pg-migrate" with {
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.addColumn("members", {
-    status: { type: "text", notNull: true, default: "'lurker'" },
+    status: { type: "text", notNull: true, default: "lurker" },
   });
 
   // Existing NS long-timers should be contributors
