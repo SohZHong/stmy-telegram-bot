@@ -111,7 +111,7 @@ export async function handleCallback(
     adminState.set(userId, { type: "AWAITING_MAI_Q" });
     await ctx.editMessageText(
       `👥 There are *${count}* registered members.\n\n💬 What would you like to know about them?\nType your question below:`,
-      { parse_mode: "Markdown" },
+      { parse_mode: "Markdown", ...Markup.inlineKeyboard([[backButton("a:ai")]]) },
     );
     return true;
   }
