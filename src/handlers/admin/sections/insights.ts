@@ -21,7 +21,10 @@ export async function handleCallback(
 ): Promise<boolean> {
   if (data === "a:ai") {
     adminState.delete(userId);
-    await ctx.editMessageText("AI Insights", insightsKeyboard());
+    await ctx.editMessageText(
+      "AI Insights\n\nGet a summary of recent chat activity, see who's most active, or ask natural-language questions about the member database.",
+      insightsKeyboard(),
+    );
     return true;
   }
 

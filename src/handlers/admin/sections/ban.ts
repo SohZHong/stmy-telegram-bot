@@ -16,7 +16,7 @@ export async function handleCallback(
   if (data === "a:ban") {
     adminState.set(userId, { type: "AWAITING_BAN_SEARCH" });
     await ctx.editMessageText(
-      "Send a username, name, or Telegram ID to find the member.",
+      "Ban / Kick\n\nSearch for a member to ban (with message wipe) or kick from the group. Group admins are protected from moderation.\n\nSend a username, name, or Telegram ID to find the member.",
       Markup.inlineKeyboard([[backButton("a:main")]]),
     );
     return true;

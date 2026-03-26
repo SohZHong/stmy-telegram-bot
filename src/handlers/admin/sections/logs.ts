@@ -62,7 +62,7 @@ export async function handleCallback(
       [backButton("a:main")],
     ];
     await ctx.editMessageText(
-      "Logs — select filter",
+      "Logs\n\nBrowse admin action logs. Filter by action type or view all.",
       Markup.inlineKeyboard(rows),
     );
     return true;
