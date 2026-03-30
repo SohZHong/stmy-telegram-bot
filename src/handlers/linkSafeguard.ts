@@ -53,8 +53,9 @@ export function setup(bot: Telegraf): void {
     if (ctx.chat.id !== config.mainGroupId) return next();
     if (!("text" in ctx.message)) return next();
 
-    // Skip admin topic
+    // Skip admin topic (if configured)
     if (
+      config.adminTopicId &&
       "message_thread_id" in ctx.message &&
       ctx.message.message_thread_id === config.adminTopicId
     ) {

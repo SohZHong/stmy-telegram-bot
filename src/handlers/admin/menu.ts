@@ -11,7 +11,6 @@ import * as stats from "./sections/stats";
 import * as logs from "./sections/logs";
 import * as blockedWords from "./sections/blockedWords";
 import * as announcements from "./sections/announcements";
-import * as adminGuide from "./sections/adminGuide";
 import * as reports from "./sections/reports";
 import * as insights from "./sections/insights";
 import * as whitelistedDomains from "./sections/whitelistedDomains";
@@ -34,7 +33,6 @@ const sections: {
   ban,
   welcomeMessages,
   introGuide,
-  adminGuide,
   stats,
   logs,
   blockedWords,
@@ -51,7 +49,7 @@ const MENU_TEXT = [
   "<b>Admin Panel</b>",
   "",
   "<b>People</b> — Members, bans, reports",
-  "<b>Content</b> — Messages, guides, words",
+  "<b>Content</b> — Messages, intro guide, words",
   "<b>Insights</b> — Stats, logs, AI",
   "<b>Settings</b> — Domains, delegation",
 ].join("\n");
@@ -67,10 +65,7 @@ function mainMenuKeyboard() {
       Markup.button.callback("Welcome Msgs", "a:wm"),
       Markup.button.callback("Intro Guide", "a:ig"),
     ],
-    [
-      Markup.button.callback("Admin Guide", "a:ag"),
-      Markup.button.callback("Blocked Words", "a:bw"),
-    ],
+    [Markup.button.callback("Blocked Words", "a:bw")],
     [Markup.button.callback("Announcements", "a:ann")],
     [
       Markup.button.callback("Stats", "a:stats"),

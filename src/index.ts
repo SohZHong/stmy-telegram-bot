@@ -3,7 +3,7 @@ import { config } from "./config";
 import { close } from "./db/database";
 import { runMigrations } from "./db/migrate";
 import { handleStartupError } from "./errors";
-import { setupCommands as setupAdmin, setupMenu as setupAdminMenu, ensureAdminGuide } from "./handlers/admin";
+import { setupCommands as setupAdmin, setupMenu as setupAdminMenu } from "./handlers/admin";
 import { setup as setupReportFlow, ensureReportPost } from "./handlers/reportFlow";
 import { setup as setupIntroFlow } from "./handlers/introFlow";
 import { setup as setupGroupCommands } from "./handlers/groupCommands";
@@ -41,11 +41,6 @@ async function start(): Promise<void> {
   console.log("Migrations complete");
 
   if (config.mainGroupId) {
-    try {
-      await ensureAdminGuide(bot.telegram);
-    } catch (err) {
-      console.warn("Could not post admin guide (check MAIN_GROUP_ID / ADMIN_TOPIC_ID):", (err as Error).message);
-    }
     try {
       await ensureReportPost(bot.telegram);
     } catch (err) {

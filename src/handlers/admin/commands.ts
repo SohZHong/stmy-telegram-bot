@@ -5,8 +5,6 @@ import {
   formatAction,
   HELP_TEXT,
   POSTHELP_TEXT,
-  DEFAULT_ADMIN_GUIDE,
-  renderAdminGuide,
 } from "./shared";
 import { config } from "../../config";
 import { getSetting, setSetting } from "../../models/settings";
@@ -18,7 +16,7 @@ import {
 import type { AdminLogAction, AdminLog } from "../../models/adminLog";
 import { resolveUser } from "../../utils/user";
 import { escapeHtml } from "../../utils/format";
-import { postToClosedTopic } from "../../permissions";
+
 
 async function formatLog(
   log: AdminLog,
@@ -273,92 +271,4 @@ export function setup(bot: Telegraf): void {
     await ctx.reply("Report button posted and pinned in the group.");
   });
 
-  bot.command("adminguide", async (ctx) => {
-    if (!(await isAdmin(ctx))) {
-      return ctx.reply("Only main group admins can use this command.");
-    }
-
-    const botInfo = await ctx.telegram.getMe();
-    const template = (await getSetting("admin_guide")) || DEFAULT_ADMIN_GUIDE;
-    const guideText = renderAdminGuide(template, botInfo.username!);
-    const chatId = config.mainGroupId;
-    const topicId = config.adminTopicId;
-
-    // Unpin previous admin guide if one exists
-    const prevMessageId = await getSetting("admin_guide_message_id");
-    if (prevMessageId) {
-      try {
-        await ctx.telegram.unpinChatMessage(
-          chatId,
-          parseInt(prevMessageId, 10),
-        );
-      } catch {
-        // Old message may have been deleted
-      }
-    }
-
-    const sent = await ctx.telegram.sendMessage(chatId, guideText, {
-      message_thread_id: topicId,
-      parse_mode: "HTML",
-      link_preview_options: { is_disabled: true },
-    });
-
-    // Pin the new guide and store its message ID
-    try {
-      await ctx.telegram.pinChatMessage(chatId, sent.message_id, {
-        disable_notification: true,
-      });
-    } catch {
-      // Bot may lack pin permissions
-    }
-
-    await setSetting(
-      "admin_guide_message_id",
-      String(sent.message_id),
-      ctx.from.id,
-    );
-
-    await ctx.reply("Admin guide posted and pinned in the admin topic.");
-  });
-}
-
-export async function ensureAdminGuide(
-  telegram: import("telegraf").Telegram,
-): Promise<void> {
-  const existingId = await getSetting("admin_guide_message_id");
-  if (existingId) {
-    try {
-      await telegram.pinChatMessage(
-        config.mainGroupId,
-        parseInt(existingId, 10),
-        { disable_notification: true },
-      );
-      return; // existing post still valid
-    } catch {
-      // post deleted or invalid, will re-post
-    }
-  }
-
-  const botInfo = await telegram.getMe();
-  const template = (await getSetting("admin_guide")) || DEFAULT_ADMIN_GUIDE;
-  const guideText = renderAdminGuide(template, botInfo.username!);
-
-  const sent = await postToClosedTopic(telegram, config.adminTopicId, () =>
-    telegram.sendMessage(config.mainGroupId, guideText, {
-      message_thread_id: config.adminTopicId,
-      parse_mode: "HTML",
-      link_preview_options: { is_disabled: true },
-    }),
-  );
-
-  try {
-    await telegram.pinChatMessage(config.mainGroupId, sent.message_id, {
-      disable_notification: true,
-    });
-  } catch {
-    // pin failed, not critical
-  }
-
-  await setSetting("admin_guide_message_id", String(sent.message_id), 0);
-  console.log("Admin guide posted and pinned");
 }
