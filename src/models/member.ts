@@ -11,6 +11,7 @@ export interface Member {
   intro_completed: boolean;
   is_ns_longtimer: boolean;
   status: MemberStatus;
+  discord_id: string | null;
   joined_at: Date;
   intro_completed_at: Date | null;
 }
@@ -123,6 +124,13 @@ export async function flagNsLongtimer(telegramId: number): Promise<void> {
   await pool.query(
     `UPDATE members SET is_ns_longtimer = TRUE, status = 'contributor' WHERE telegram_id = $1`,
     [telegramId],
+  );
+}
+
+export async function setDiscordId(telegramId: number, discordId: string): Promise<void> {
+  await pool.query(
+    `UPDATE members SET discord_id = $2 WHERE telegram_id = $1`,
+    [telegramId, discordId],
   );
 }
 

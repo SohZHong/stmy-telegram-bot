@@ -144,15 +144,19 @@ export async function handleCallback(
 
     const introStatus = member.intro_completed ? "Completed" : "Pending";
     const nsStatus = member.is_ns_longtimer ? "Yes" : "No";
-    const text = [
+    const lines = [
       `Name: ${member.first_name || "N/A"}`,
       `Username: ${member.username ? "@" + member.username : "N/A"}`,
       `Telegram ID: ${member.telegram_id}`,
       `Status: ${member.status}`,
       `Intro: ${introStatus}`,
       `NS Long-termer: ${nsStatus}`,
-      `Joined: ${member.joined_at.toISOString().split("T")[0]}`,
-    ].join("\n");
+    ];
+    if (member.discord_id) {
+      lines.push(`Discord: ${member.discord_id}`);
+    }
+    lines.push(`Joined: ${member.joined_at.toISOString().split("T")[0]}`);
+    const text = lines.join("\n");
 
     const buttons: ReturnType<typeof Markup.button.callback>[][] = [];
     if (!member.intro_completed) {

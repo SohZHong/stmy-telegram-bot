@@ -1,7 +1,7 @@
 import { Markup, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 import { config } from "../config";
-import { getMember, markIntroCompleted, flagNsLongtimer } from "../models/member";
+import { getMember, markIntroCompleted, flagNsLongtimer, setDiscordId } from "../models/member";
 import { getSetting } from "../models/settings";
 import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { postToClosedTopic, unmuteUser } from "../permissions";
@@ -16,7 +16,8 @@ const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}!";
 
 type IntroState =
   | { step: "AWAITING_INTRO" }
-  | { step: "AWAITING_NS"; introText: string };
+  | { step: "AWAITING_NS"; introText: string }
+  | { step: "AWAITING_DISCORD_ID"; introText: string };
 
 const introState = new Map<number, IntroState>();
 
@@ -57,12 +58,14 @@ async function notifyNsVerification(
   userId: number,
   username: string | undefined,
   firstName: string | undefined,
+  discordId: string,
 ): Promise<void> {
   const display = username ? `@${username}` : firstName || String(userId);
   const text =
     `🏷️ <b>NS Long-termer Verification</b>\n━━━━━━━━━━━━━━━━━━━━\n\n` +
-    `👤 ${escapeHtml(display)} (ID: ${userId}) claims to be an NS long-termer.\n\n` +
-    `Please verify and approve or reject.`;
+    `👤 ${escapeHtml(display)} (ID: ${userId}) claims to be an NS long-termer.\n` +
+    `🎮 Discord ID: <code>${escapeHtml(discordId)}</code>\n\n` +
+    `Please verify on the <a href="https://discord.gg/networkschool">NS Discord</a> and approve or reject.`;
 
   const keyboard = Markup.inlineKeyboard([
     [
@@ -105,6 +108,7 @@ async function finalizeIntro(
   username: string | undefined,
   firstName: string | undefined,
   isNsLongtimer: boolean,
+  discordId?: string,
 ): Promise<void> {
   // AI-rewrite the intro if OpenAI is configured, otherwise use raw text
   let polishedIntro = introText;
@@ -129,10 +133,11 @@ async function finalizeIntro(
     }),
   );
 
-  // Notify admins for NS verification if claimed
-  if (isNsLongtimer) {
+  // Save Discord ID and notify admins for NS verification if claimed
+  if (isNsLongtimer && discordId) {
+    await setDiscordId(userId, discordId);
     try {
-      await notifyNsVerification(telegram, userId, username, firstName);
+      await notifyNsVerification(telegram, userId, username, firstName, discordId);
     } catch (err) {
       console.error(`Failed to send NS verification notification:`, (err as Error).message);
     }
@@ -213,28 +218,32 @@ export function setup(bot: Telegraf): void {
 
     await ctx.answerCbQuery();
 
-    const claimedNs = data === "ns:yes";
-
-    try {
-      await finalizeIntro(
-        ctx.telegram,
-        userId,
-        state.introText,
-        ctx.from.username,
-        ctx.from.first_name,
-        claimedNs,
+    if (data === "ns:yes") {
+      // Prompt for Discord ID before finalizing
+      introState.set(userId, { step: "AWAITING_DISCORD_ID", introText: state.introText });
+      await ctx.editMessageText(
+        "Please enter your Discord username or ID so we can verify your NS membership on the official NS Discord server.",
       );
-
-      const msg = claimedNs
-        ? "Your introduction has been posted! Your NS long-termer claim has been sent to admins for verification. You can now chat freely in the group."
-        : "Your introduction has been posted! You can now chat freely in the group.";
-      await ctx.editMessageText(msg);
-    } catch (err) {
-      console.error(`Error finalizing intro for user ${userId}:`, (err as Error).message);
-      await ctx.editMessageText("Something went wrong. Please try again with /start intro.");
+    } else {
+      // Not NS — finalize immediately
+      try {
+        await finalizeIntro(
+          ctx.telegram,
+          userId,
+          state.introText,
+          ctx.from.username,
+          ctx.from.first_name,
+          false,
+        );
+        await ctx.editMessageText(
+          "Your introduction has been posted! You can now chat freely in the group.",
+        );
+      } catch (err) {
+        console.error(`Error finalizing intro for user ${userId}:`, (err as Error).message);
+        await ctx.editMessageText("Something went wrong. Please try again with /start intro.");
+      }
+      introState.delete(userId);
     }
-
-    introState.delete(userId);
   });
 
   // Handle admin NS verification callbacks
@@ -289,10 +298,14 @@ export function setup(bot: Telegraf): void {
     const state = introState.get(userId);
     if (!state) return next();
 
-    // If waiting for NS answer as text fallback
-    if (state.step === "AWAITING_NS") {
-      const answer = ctx.message.text.trim().toLowerCase();
-      const claimedNs = answer === "yes" || answer === "y";
+    // If waiting for Discord ID
+    if (state.step === "AWAITING_DISCORD_ID") {
+      const discordId = ctx.message.text.trim();
+
+      if (!discordId || discordId.length < 2) {
+        await ctx.reply("Please enter a valid Discord username or ID.");
+        return;
+      }
 
       try {
         await finalizeIntro(
@@ -301,13 +314,47 @@ export function setup(bot: Telegraf): void {
           state.introText,
           ctx.from.username,
           ctx.from.first_name,
-          claimedNs,
+          true,
+          discordId,
         );
+        await ctx.reply(
+          "Your introduction has been posted! Your NS long-termer claim and Discord ID have been sent to admins for verification. You can now chat freely in the group.",
+        );
+      } catch (err) {
+        console.error(`Error finalizing intro for user ${userId}:`, (err as Error).message);
+        await ctx.reply("Something went wrong. Please try again with /start intro.");
+      }
 
-        const msg = claimedNs
-          ? "Your introduction has been posted! Your NS long-termer claim has been sent to admins for verification. You can now chat freely in the group."
-          : "Your introduction has been posted! You can now chat freely in the group.";
-        await ctx.reply(msg);
+      introState.delete(userId);
+      return;
+    }
+
+    // If waiting for NS answer as text fallback
+    if (state.step === "AWAITING_NS") {
+      const answer = ctx.message.text.trim().toLowerCase();
+      const claimedNs = answer === "yes" || answer === "y";
+
+      if (claimedNs) {
+        // Prompt for Discord ID
+        introState.set(userId, { step: "AWAITING_DISCORD_ID", introText: state.introText });
+        await ctx.reply(
+          "Please enter your Discord username or ID so we can verify your NS membership on the official NS Discord server.",
+        );
+        return;
+      }
+
+      try {
+        await finalizeIntro(
+          ctx.telegram,
+          userId,
+          state.introText,
+          ctx.from.username,
+          ctx.from.first_name,
+          false,
+        );
+        await ctx.reply(
+          "Your introduction has been posted! You can now chat freely in the group.",
+        );
       } catch (err) {
         console.error(`Error finalizing intro for user ${userId}:`, (err as Error).message);
         await ctx.reply("Something went wrong. Please try again with /start intro.");
