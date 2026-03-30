@@ -7,9 +7,9 @@ Telegram onboarding and moderation bot for Superteam MY. Automatically mutes new
 - **Onboarding flow** — new members are muted until they submit an introduction via DM
 - **Blocked words** — admin-managed word list that rejects introductions containing blocked content
 - **Member reporting** — group members can privately report others via DM; configurable alert and auto-ban thresholds
-- **Admin panel** — full DM-based inline-button menu for managing members, bans, welcome messages, intro/admin guides, announcements, reports, stats, and logs
+- **Admin panel** — full DM-based inline-button menu for managing members, bans, welcome messages, intro guide, announcements, reports, stats, and logs
 - **Announcements** — broadcast messages to admin DMs or post to a dedicated announcements topic
-- **Auto-setup on startup** — admin guide and report button are automatically posted and pinned on first boot
+- **Auto-setup on startup** — report button is automatically posted and pinned on first boot
 - **Late bot addition** — existing group members are automatically registered when they first send a message
 - **Link safeguard** — auto-detects links in group messages, posts a safety warning, and DMs admins with a one-tap delete button. Admin-managed domain whitelist skips warnings for trusted sites
 - **Whitelisted domains** — admin-managed list of trusted domains exempt from link safety warnings (subdomains included automatically)
@@ -18,7 +18,7 @@ Telegram onboarding and moderation bot for Superteam MY. Automatically mutes new
   - **Intro generation** — LLM rewrites raw intro text into a polished, structured welcome message
   - **Contact auto-reply** — answers "who to contact" questions in group chat
   - **AI Insights** — chat summary, activity leaderboard, and natural-language member queries for admins
-- **NS long-termer verification** — new members can claim NS long-termer status; admins receive a verification request with approve/reject buttons
+- **NS long-termer verification** — new members can claim NS long-termer status and provide their Discord ID; admins receive a verification request with the Discord ID and approve/reject buttons
 - **Member status tracking** — members have a status (lurker/contributor/member) tracked in the database; NS long-termers are auto-promoted to contributor
 - **Delegation** — assign a specific admin to receive notifications for NS verification, link alerts, or reports (defaults to all admins)
 - **Action logging** — all admin actions are logged and browsable with filters
@@ -32,7 +32,7 @@ Telegram onboarding and moderation bot for Superteam MY. Automatically mutes new
 3. The user clicks the button, which opens a DM with the bot via deep link (`t.me/{bot}?start=intro`)
 4. The bot sends the welcome message + intro guide and asks the user to type their introduction
 5. The introduction is validated (minimum length, no repeating characters, no blocked words, and optionally LLM validation if `OPENAI_API_KEY` is set)
-6. The bot asks if the user is an NS long-termer (yes/no). If they claim yes, admins are notified for verification
+6. The bot asks if the user is an NS long-termer (yes/no). If they claim yes, the bot asks for their Discord username/ID, then notifies admins with the Discord ID for verification against the [NS Discord](https://discord.gg/networkschool)
 7. If `OPENAI_API_KEY` is set, the bot rewrites the raw intro into a polished, structured welcome message. Otherwise, posts the user's original text
 8. The bot posts the introduction in the **Introduction topic** on their behalf, marks them as introduced, **unmutes** them, and deletes the welcome message from the Welcome topic
 9. The user can now post freely in all group topics
@@ -64,7 +64,7 @@ src/
     migrate.ts             # Programmatic migration runner (also works standalone)
     migrations/            # Ordered SQL migrations run by node-pg-migrate
   models/
-    member.ts              # Member queries (upsert, get, search, mark intro, stats, NS flag, status)
+    member.ts              # Member queries (upsert, get, search, mark intro, stats, NS flag, status, discord ID)
     settings.ts            # Key-value settings (get, set with upsert)
     adminLog.ts            # Admin action log queries and action type definitions
     welcomeMessage.ts      # Welcome message CRUD
@@ -92,7 +92,6 @@ src/
         ban.ts             # Ban / kick flow
         welcomeMessages.ts # Welcome message CRUD
         introGuide.ts      # Intro guide view / edit
-        adminGuide.ts      # Admin guide view / edit
         stats.ts           # Stats overview
         logs.ts            # Admin action logs browser with filters
         blockedWords.ts    # Blocked word CRUD
@@ -145,11 +144,11 @@ docker-compose up -d
 | `MAIN_GROUP_ID`          | Yes      | Telegram chat ID of the main supergroup                                                      |
 | `INTRO_TOPIC_ID`         | Yes      | Forum topic thread ID for introductions                                                      |
 | `WELCOME_TOPIC_ID`       | Yes      | Forum topic thread ID for welcome messages (where the "Start Introduction" button is posted) |
-| `ADMIN_TOPIC_ID`         | Yes      | Forum topic thread ID for admin-related posts (e.g. admin guide)                             |
 | `DATABASE_URL`           | Yes      | PostgreSQL connection string                                                                 |
 | `ANNOUNCEMENTS_TOPIC_ID` | No       | Forum topic thread ID for announcements. If set, enables posting announcements to the topic  |
 | `OPENAI_API_KEY`         | No       | OpenAI API key. Enables LLM intro validation, contact auto-reply, and AI Insights            |
 | `PIC_HANDLES`            | No       | Comma-separated Telegram handles for the contact auto-reply (e.g. `@alice, @bob`)            |
+| `ADMIN_TOPIC_ID`         | No       | Forum topic thread ID for admin topic. If set, link safeguard skips this topic               |
 
 ## Admin interface
 
@@ -164,7 +163,6 @@ docker-compose up -d
 | `/logs [type] [start] [end]`  | View logs by date range                                              |
 | `/announce <message>`         | Broadcast announcement to all admins via DM                          |
 | `/announce preview <message>` | Preview announcement (sent only to you)                              |
-| `/adminguide`                 | Re-post and pin admin guide in admin topic (auto-posted on startup)  |
 | `/posthelp`                   | Post a pinnable help message to the current chat                     |
 | `/postreport`                 | Re-post and pin report button in General topic (auto-posted on startup) |
 | `/setup`                      | Display the current chat ID and topic thread ID (for configuring `.env`)  |
@@ -182,7 +180,6 @@ Open via the deep link `t.me/{bot}?start=admin` (group admins only). Provides an
 - **Ban / Kick** — search for a member, then ban (with message wipe) or kick
 - **Welcome Messages** — list, add, edit, delete welcome message templates
 - **Intro Guide** — view and edit the intro guide
-- **Admin Guide** — view and edit the admin getting-started guide
 - **Stats** — member counts, moderation counts (bans, kicks, approvals), report stats, configuration counts
 - **Blocked Words** — manage words blocked from intro submissions
 - **Announcements** — broadcast to admin DMs or post to announcements topic

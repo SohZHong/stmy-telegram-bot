@@ -30,9 +30,8 @@ npm install
 3. Create the following forum topics:
    - **Welcome** — where the bot posts "Start Introduction" buttons for new members
    - **Introduction** — where approved introductions are posted
-   - **Admin** — for admin-only content (admin guide, etc.)
    - **Announcements** (optional) — for posting announcements to the group
-4. **Close** the Introduction, Admin, and Announcements topics. The bot will temporarily reopen them to post, then close them again automatically. This prevents members from posting directly in these topics. The Welcome topic can be left open or closed depending on whether you want members to chat there.
+4. **Close** the Introduction and Announcements topics. The bot will temporarily reopen them to post, then close them again automatically. This prevents members from posting directly in these topics. The Welcome topic can be left open or closed depending on whether you want members to chat there.
 5. Add your bot to the group as an **administrator** with these permissions:
    - Delete messages
    - Ban users
@@ -90,7 +89,6 @@ BOT_TOKEN=123456:ABC-DEF...
 MAIN_GROUP_ID=-1001234567890
 INTRO_TOPIC_ID=7
 WELCOME_TOPIC_ID=19
-ADMIN_TOPIC_ID=66
 DATABASE_URL=postgresql://bot:bot@localhost:5432/stmy_bot
 
 # Optional: enable posting announcements to a group topic
@@ -127,8 +125,8 @@ This starts the bot with hot-reload via `tsx --watch`. Migrations run automatica
 
 ## 8. Verify it works
 
-1. Check the bot logs — you should see "Migrations complete", "Admin guide posted and pinned", "Report button posted and pinned", and "Bot started"
-2. Verify the admin guide is pinned in the **Admin** topic and the report button is pinned in **General**
+1. Check the bot logs — you should see "Migrations complete", "Report button posted and pinned", and "Bot started"
+2. Verify the report button is pinned in **General**
 3. Open a DM with your bot on Telegram
 4. Send `/start admin` — you should see the admin menu
 5. In the group, use `/testjoin` (admin only) to simulate a new member join — you should see a welcome button in the Welcome topic. Or have someone actually join the group
