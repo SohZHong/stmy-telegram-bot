@@ -21,7 +21,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          envs: BOT_TOKEN,MAIN_GROUP_ID,INTRO_TOPIC_ID,WELCOME_TOPIC_ID,ADMIN_TOPIC_ID,ANNOUNCEMENTS_TOPIC_ID,OPENAI_API_KEY,PIC_HANDLES
+          envs: BOT_TOKEN,MAIN_GROUP_ID,INTRO_TOPIC_ID,WELCOME_TOPIC_ID,ADMIN_TOPIC_ID,ANNOUNCEMENTS_TOPIC_ID,OPENAI_API_KEY,PIC_HANDLES,POSTGRES_PASSWORD
           script_stop: true
           script: |
             set -euo pipefail
@@ -46,7 +46,20 @@ jobs:
             ANNOUNCEMENTS_TOPIC_ID=${ANNOUNCEMENTS_TOPIC_ID}
             OPENAI_API_KEY=${OPENAI_API_KEY}
             PIC_HANDLES=${PIC_HANDLES}
+            POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
             EOF
+
+            # Bring db up and block until healthy (declared in compose).
+            docker compose up -d --wait db
+
+            # Sync the Postgres role password with the secret (idempotent).
+            # Uses Unix-socket trust auth, so the previous password is not
+            # required. psql's :'PW' substitution handles any character safely
+            # without manual SQL quoting.
+            docker compose exec -T db \
+              psql -U bot -d stmy_bot -v PW="${POSTGRES_PASSWORD}" >/dev/null <<'SQL'
+            ALTER USER bot WITH PASSWORD :'PW';
+            SQL
 
             docker compose up -d --build bot
 
@@ -67,3 +80,4 @@ jobs:
           ANNOUNCEMENTS_TOPIC_ID: ${{ secrets.ANNOUNCEMENTS_TOPIC_ID }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           PIC_HANDLES: ${{ secrets.PIC_HANDLES }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
