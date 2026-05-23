@@ -128,7 +128,7 @@ Migrations run automatically on startup. The bot will hot-reload on file changes
 
 ## Deployment
 
-See [DEPLOY.md](DEPLOY.md) for production deployment instructions.
+See [DEPLOY.md](DEPLOY.md) for production deployment instructions, or [AWS_DEPLOY.md](AWS_DEPLOY.md) for a step-by-step AWS deployment guide (EC2 + Docker Compose, written to be followable from a fresh AWS account).
 
 ### Quick deploy (Docker)
 
