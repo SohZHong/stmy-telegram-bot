@@ -81,10 +81,13 @@ async function notifyNsVerification(
         parse_mode: "HTML",
         ...keyboard,
       });
-    } catch {
-      // designated admin may not have started DM
+      return;
+    } catch (err) {
+      console.error(
+        `NS verify: failed to DM designated admin ${designated}, falling back to all admins:`,
+        (err as Error).message,
+      );
     }
-    return;
   }
 
   const admins = await telegram.getChatAdministrators(config.mainGroupId);
@@ -164,7 +167,8 @@ export function setup(bot: Telegraf): void {
     if (ctx.chat.type !== "private") return next();
 
     const payload = ctx.payload;
-    if (payload !== "intro") return next();
+    // Accept "intro" or no payload — non-empty other payloads belong to other handlers
+    if (payload && payload !== "intro") return next();
 
     const userId = ctx.from.id;
 

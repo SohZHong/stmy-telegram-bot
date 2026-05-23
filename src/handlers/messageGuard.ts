@@ -18,6 +18,10 @@ setInterval(() => {
       lastReminderTime.delete(userId);
     }
   }
+  // Also prune lastReminderTime entries from DM-blocked users that never landed in nagMessageIds
+  for (const [userId, ts] of lastReminderTime) {
+    if (now - ts > NAG_TTL_MS) lastReminderTime.delete(userId);
+  }
 }, 60 * 60 * 1000); // Run hourly
 
 export function setup(bot: Telegraf): void {

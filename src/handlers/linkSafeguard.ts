@@ -28,10 +28,13 @@ async function notifyLinkAdmins(
   if (designated && designated !== "0") {
     try {
       await telegram.sendMessage(parseInt(designated, 10), text, keyboard);
-    } catch {
-      // designated admin may not have started DM
+      return;
+    } catch (err) {
+      console.error(
+        `Link alert: failed to DM designated admin ${designated}, falling back to all admins:`,
+        (err as Error).message,
+      );
     }
-    return;
   }
 
   const admins = await telegram.getChatAdministrators(chatId);
@@ -70,6 +73,7 @@ export function setup(bot: Telegraf): void {
 
     // Extract domains from all URLs in the message
     const domains: string[] = [];
+    let hasMalformed = false;
     for (const entity of entities) {
       let url = "";
       if (entity.type === "url") {
@@ -82,12 +86,12 @@ export function setup(bot: Telegraf): void {
         const hostname = new URL(url).hostname.toLowerCase();
         domains.push(hostname);
       } catch {
-        // malformed URL, still flag it
+        hasMalformed = true;
       }
     }
 
-    // If all domains are whitelisted, skip the warning
-    if (domains.length > 0) {
+    // Only skip the warning if every URL is parseable AND whitelisted
+    if (!hasMalformed && domains.length > 0) {
       const checks = await Promise.all(domains.map((d) => isDomainWhitelisted(d)));
       if (checks.every(Boolean)) return next();
     }

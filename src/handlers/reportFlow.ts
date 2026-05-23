@@ -38,10 +38,13 @@ async function notifyAdmins(
       await telegram.sendMessage(parseInt(designated, 10), text, {
         parse_mode: "HTML",
       });
-    } catch {
-      // designated admin may not have started DM
+      return;
+    } catch (err) {
+      console.error(
+        `Report: failed to DM designated admin ${designated}, falling back to all admins:`,
+        (err as Error).message,
+      );
     }
-    return;
   }
 
   const admins = await telegram.getChatAdministrators(config.mainGroupId);

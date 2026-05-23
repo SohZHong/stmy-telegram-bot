@@ -50,8 +50,13 @@ Respond in JSON format:
     response_format: { type: "json_object" },
   });
 
-  const result = JSON.parse(response.choices[0].message.content ?? "{}");
-  return { valid: result.valid ?? true, reason: result.reason ?? "" };
+  let result: { valid?: boolean; reason?: string } = {};
+  try {
+    result = JSON.parse(response.choices[0].message.content ?? "{}");
+  } catch (err) {
+    console.error("validateIntro: failed to parse LLM JSON, rejecting:", (err as Error).message);
+  }
+  return { valid: result.valid ?? false, reason: result.reason ?? "" };
 }
 
 export async function generateIntro(
