@@ -49,19 +49,16 @@ jobs:
             POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
             EOF
 
-            # Ensure db is running (it usually is, but a fresh box needs this).
-            docker compose up -d db
-            # Wait for the db healthcheck to pass before touching it.
-            for i in $(seq 1 30); do
-              if docker compose ps db | grep -q "healthy"; then break; fi
-              sleep 2
-            done
+            # Bring db up and block until healthy (declared in compose).
+            docker compose up -d --wait db
 
             # Sync the Postgres role password with the secret (idempotent).
-            # Uses Unix-socket trust auth inside the container, so the old
-            # password is not required.
-            docker compose exec -T db psql -U bot -d stmy_bot >/dev/null <<SQL
-            ALTER USER bot WITH PASSWORD '${POSTGRES_PASSWORD}';
+            # Uses Unix-socket trust auth, so the previous password is not
+            # required. psql's :'PW' substitution handles any character safely
+            # without manual SQL quoting.
+            docker compose exec -T db \
+              psql -U bot -d stmy_bot -v PW="${POSTGRES_PASSWORD}" >/dev/null <<'SQL'
+            ALTER USER bot WITH PASSWORD :'PW';
             SQL
 
             docker compose up -d --build bot
