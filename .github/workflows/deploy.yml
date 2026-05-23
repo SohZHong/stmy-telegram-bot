@@ -1,0 +1,69 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          envs: BOT_TOKEN,MAIN_GROUP_ID,INTRO_TOPIC_ID,WELCOME_TOPIC_ID,ADMIN_TOPIC_ID,ANNOUNCEMENTS_TOPIC_ID,OPENAI_API_KEY,PIC_HANDLES
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            REPO_DIR="${HOME}/stmy-telegram-bot"
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              echo "Repo not found at $REPO_DIR — bootstrap the instance first (see AWS_DEPLOY.md)."
+              exit 1
+            fi
+
+            cd "$REPO_DIR"
+            git fetch origin main
+            git reset --hard origin/main
+
+            umask 077
+            cat > .env <<EOF
+            BOT_TOKEN=${BOT_TOKEN}
+            MAIN_GROUP_ID=${MAIN_GROUP_ID}
+            INTRO_TOPIC_ID=${INTRO_TOPIC_ID}
+            WELCOME_TOPIC_ID=${WELCOME_TOPIC_ID}
+            ADMIN_TOPIC_ID=${ADMIN_TOPIC_ID}
+            ANNOUNCEMENTS_TOPIC_ID=${ANNOUNCEMENTS_TOPIC_ID}
+            OPENAI_API_KEY=${OPENAI_API_KEY}
+            PIC_HANDLES=${PIC_HANDLES}
+            EOF
+
+            docker compose up -d --build bot
+
+            sleep 5
+            if ! docker compose ps bot | grep -q "Up"; then
+              echo "Bot container not running after deploy."
+              docker compose logs --tail=100 bot
+              exit 1
+            fi
+
+            docker image prune -f
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          MAIN_GROUP_ID: ${{ secrets.MAIN_GROUP_ID }}
+          INTRO_TOPIC_ID: ${{ secrets.INTRO_TOPIC_ID }}
+          WELCOME_TOPIC_ID: ${{ secrets.WELCOME_TOPIC_ID }}
+          ADMIN_TOPIC_ID: ${{ secrets.ADMIN_TOPIC_ID }}
+          ANNOUNCEMENTS_TOPIC_ID: ${{ secrets.ANNOUNCEMENTS_TOPIC_ID }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PIC_HANDLES: ${{ secrets.PIC_HANDLES }}

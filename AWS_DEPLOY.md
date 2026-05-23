@@ -327,6 +327,127 @@ Adds ~$13/month for the RDS instance. Gains: automated backups, point-in-time re
 
 ---
 
+## Phase 7 — CI/CD via GitHub Actions
+
+The repo includes `.github/workflows/deploy.yml`, which SSHs into the EC2 instance and runs `docker compose up -d --build bot` whenever `main` is updated. All env values are read from GitHub Actions secrets — nothing sensitive lives in the repo.
+
+### 7a. Create a dedicated deploy SSH key
+
+Don't reuse the user's personal SSH key for CI. Create one just for GitHub Actions, on the **EC2 instance**:
+
+```bash
+# On the EC2 instance:
+ssh-keygen -t ed25519 -f ~/.ssh/github-deploy -N "" -C "github-actions"
+cat ~/.ssh/github-deploy.pub >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+cat ~/.ssh/github-deploy   # private key — copy this for the SSH_PRIVATE_KEY secret
+rm ~/.ssh/github-deploy ~/.ssh/github-deploy.pub   # don't leave the key on the box
+```
+
+The private key is now only in two places: the operator's terminal buffer (clear it) and (after Phase 7c) GitHub's encrypted secret store.
+
+### 7b. Open EC2's security group to GitHub Actions
+
+GitHub Actions runners use a published IP range; opening port 22 to that range is wide. Two practical options:
+
+- **Easier, less safe:** temporarily allow `0.0.0.0/0` on port 22 during deploys, revert after. Not recommended for steady state.
+- **Recommended:** install [Tailscale](https://tailscale.com/) on the EC2 instance and on the GitHub runner (via the [tailscale-action](https://github.com/tailscale/github-action)), then SSH over the tailnet. No public SSH exposure.
+- **Acceptable middle ground:** keep `My IP` for human SSH and add a second inbound rule for the [GitHub Actions IP range](https://api.github.com/meta) (the `actions` array). Note that this list changes — needs occasional review.
+
+For a first pass, the middle ground is fine. Document which approach was chosen in your runbook.
+
+### 7c. Set GitHub repo secrets
+
+Run these locally (in this repo). Each command prompts for the value, so nothing sensitive ends up in shell history:
+
+| Secret | Required | What goes in |
+|--------|----------|--------------|
+| `SSH_HOST` | Yes | EC2 public IP or Elastic IP (or Tailscale hostname) |
+| `SSH_USER` | Yes | `ec2-user` |
+| `SSH_PRIVATE_KEY` | Yes | Contents of the `~/.ssh/github-deploy` private key from 7a (include the `-----BEGIN…` and `-----END…` lines) |
+| `SSH_PORT` | No | Defaults to `22`; set only if changed |
+| `BOT_TOKEN` | Yes | Telegram bot token |
+| `MAIN_GROUP_ID` | Yes | Main supergroup chat ID |
+| `INTRO_TOPIC_ID` | Yes | Intro topic thread ID |
+| `WELCOME_TOPIC_ID` | Yes | Welcome topic thread ID |
+| `ADMIN_TOPIC_ID` | No | Admin topic thread ID, if used |
+| `ANNOUNCEMENTS_TOPIC_ID` | No | Announcements topic thread ID, if used |
+| `OPENAI_API_KEY` | No | OpenAI key for AI features |
+| `PIC_HANDLES` | No | Comma-separated handles for contact auto-reply |
+
+Setting them with `gh`:
+
+```bash
+# Required
+gh secret set SSH_HOST
+gh secret set SSH_USER         # ec2-user
+gh secret set SSH_PRIVATE_KEY < ~/path/to/github-deploy   # read from file to avoid TTY echo
+gh secret set BOT_TOKEN
+gh secret set MAIN_GROUP_ID
+gh secret set INTRO_TOPIC_ID
+gh secret set WELCOME_TOPIC_ID
+
+# Optional — set only if used
+gh secret set ADMIN_TOPIC_ID
+gh secret set ANNOUNCEMENTS_TOPIC_ID
+gh secret set OPENAI_API_KEY
+gh secret set PIC_HANDLES
+gh secret set SSH_PORT
+```
+
+Confirm they're all set:
+
+```bash
+gh secret list
+```
+
+> **DATABASE_URL is not a secret.** It's overridden inside `docker-compose.yml` to point at the `db` container. If you later migrate to RDS, add `DATABASE_URL` as a secret and reference it in the workflow.
+
+### 7d. How the workflow works
+
+On every push to `main` (or via "Run workflow" on the Actions tab):
+
+1. GitHub Actions runner SSHs into the EC2 instance using `SSH_PRIVATE_KEY`.
+2. `git fetch origin main && git reset --hard origin/main` — pulls the latest code. Untracked files (like `.env`) are preserved.
+3. Writes a fresh `.env` on the instance from the secrets passed through the SSH session (umask 077, so it's owner-readable only).
+4. `docker compose up -d --build bot` — rebuilds and restarts only the bot container. `db` keeps running with its volume intact.
+5. Verifies the bot container is `Up` after 5 seconds. Dumps logs and fails the job if not.
+6. `docker image prune -f` — cleans up dangling layers from the build.
+
+The `concurrency: deploy-ec2` group prevents overlapping deploys if you push twice in quick succession.
+
+### 7e. First-time verification
+
+After setting the secrets, trigger a manual run:
+
+```bash
+gh workflow run deploy.yml
+gh run watch
+```
+
+If it fails on SSH, the most common causes are:
+- Security group not allowing the runner's IP — see 7b.
+- `SSH_PRIVATE_KEY` was pasted with a missing trailing newline. Re-set it via file: `gh secret set SSH_PRIVATE_KEY < ~/keyfile`.
+- `SSH_HOST` points at the wrong IP after an instance restart — switch to an Elastic IP (Phase 6 step 4).
+
+### 7f. Rotating the deploy key
+
+Every 6–12 months, rotate:
+
+```bash
+# On EC2:
+ssh-keygen -t ed25519 -f ~/.ssh/github-deploy-new -N "" -C "github-actions"
+cat ~/.ssh/github-deploy-new.pub >> ~/.ssh/authorized_keys
+# Remove the old public key line from authorized_keys
+nano ~/.ssh/authorized_keys
+# Update the GitHub secret:
+gh secret set SSH_PRIVATE_KEY < ~/.ssh/github-deploy-new
+# Clean up:
+rm ~/.ssh/github-deploy-new ~/.ssh/github-deploy-new.pub
+```
+
+---
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
@@ -353,4 +474,5 @@ Adds ~$13/month for the RDS instance. Gains: automated backups, point-in-time re
 | Repo path on instance | `~/stmy-telegram-bot` |
 | Bot logs | `docker compose logs -f bot` |
 | Restart | `docker compose restart bot` |
-| Update | `git pull && docker compose up -d --build bot` |
+| Update (manual) | `git pull && docker compose up -d --build bot` |
+| Update (CI) | Push to `main` — GitHub Actions deploys automatically (see Phase 7) |
