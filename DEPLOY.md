@@ -1,6 +1,6 @@
 # Production Deployment
 
-Deploying to AWS from a fresh account? See **[AWS_DEPLOY.md](AWS_DEPLOY.md)** for a phase-by-phase guide covering account setup, hardening, EC2 launch, and bot deploy via Docker Compose.
+Deploying to AWS from a fresh account? See **[AWS_DEPLOY.md](AWS_DEPLOY.md)** for a phase-by-phase guide covering account setup, hardening, EC2 launch, bot deploy via Docker Compose, and CI/CD via GitHub Actions (`.github/workflows/deploy.yml`).
 
 ## Docker Compose (recommended)
 
