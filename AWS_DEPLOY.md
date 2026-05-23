@@ -374,18 +374,21 @@ Run these locally (in this repo). Each command prompts for the value, so nothing
 | `ANNOUNCEMENTS_TOPIC_ID` | No | Announcements topic thread ID, if used |
 | `OPENAI_API_KEY` | No | OpenAI key for AI features |
 | `PIC_HANDLES` | No | Comma-separated handles for contact auto-reply |
+| `POSTGRES_PASSWORD` | Yes | Strong random password for the Postgres `bot` role. The deploy workflow rotates the live DB role's password to match on each run (idempotent via Unix-socket trust auth inside the db container — no need to know the previous password). |
 
 Setting them with `gh`:
 
 ```bash
 # Required
 gh secret set SSH_HOST
-gh secret set SSH_USER         # ec2-user
+gh secret set SSH_USER         # ec2-user (or ubuntu, depending on AMI)
 gh secret set SSH_PRIVATE_KEY < ~/path/to/github-deploy   # read from file to avoid TTY echo
 gh secret set BOT_TOKEN
 gh secret set MAIN_GROUP_ID
 gh secret set INTRO_TOPIC_ID
 gh secret set WELCOME_TOPIC_ID
+# Generate a strong Postgres password and pipe it directly into the secret store:
+openssl rand -base64 33 | tr -d '/+=\n' | head -c 40 | gh secret set POSTGRES_PASSWORD
 
 # Optional — set only if used
 gh secret set ADMIN_TOPIC_ID

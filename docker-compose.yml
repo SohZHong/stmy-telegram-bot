@@ -3,10 +3,8 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: bot
-      POSTGRES_PASSWORD: bot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bot}
       POSTGRES_DB: stmy_bot
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +21,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://bot:bot@db:5432/stmy_bot
+      DATABASE_URL: postgresql://bot:${POSTGRES_PASSWORD:-bot}@db:5432/stmy_bot
 
 volumes:
   pgdata:
