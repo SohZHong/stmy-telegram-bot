@@ -162,7 +162,7 @@ export function setup(bot: Telegraf): void {
     }
 
     const sender = await resolveUser(String(ctx.from.id), ctx.telegram);
-    const text = `<b>Announcement by ${escapeHtml(sender)}</b>\n\n${message}`;
+    const text = `<b>Announcement by ${escapeHtml(sender)}</b>\n\n${escapeHtml(message)}`;
 
     if (isPreview) {
       return ctx.telegram.sendMessage(ctx.from.id, text, {

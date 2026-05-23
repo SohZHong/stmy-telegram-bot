@@ -18,7 +18,8 @@ export async function isAdminById(
     return (
       chatMember.status === "administrator" || chatMember.status === "creator"
     );
-  } catch {
+  } catch (err) {
+    console.error(`isAdminById failed for user ${userId}:`, (err as Error).message);
     return false;
   }
 }

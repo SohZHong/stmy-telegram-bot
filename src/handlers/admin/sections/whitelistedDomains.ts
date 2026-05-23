@@ -142,9 +142,15 @@ export async function handleText(
   domain = domain.split("/")[0];
   domain = domain.split(":")[0];
 
-  if (!domain || !domain.includes(".")) {
+  const labels = domain.split(".");
+  const looksLikeValidDomain =
+    labels.length >= 2 &&
+    labels.every((l) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(l)) &&
+    labels[labels.length - 1].length >= 2;
+
+  if (!domain || !looksLikeValidDomain) {
     await ctx.reply(
-      "Invalid domain. Please enter a valid domain like example.com.",
+      "Invalid domain. Please enter a valid domain like example.com (must have at least two labels, e.g. cannot be just 'com' or '.com').",
       Markup.inlineKeyboard([[backButton("a:wd")]]),
     );
     return true;
