@@ -22,12 +22,16 @@ export async function getWhitelistedDomain(id: number): Promise<WhitelistedDomai
   return rows[0] ?? null;
 }
 
-export async function addWhitelistedDomain(domain: string, createdBy: number): Promise<WhitelistedDomain> {
+export async function addWhitelistedDomain(
+  domain: string,
+  createdBy: number,
+): Promise<WhitelistedDomain | null> {
   const { rows } = await pool.query<WhitelistedDomain>(
-    `INSERT INTO whitelisted_domains (domain, created_by) VALUES ($1, $2) RETURNING *`,
+    `INSERT INTO whitelisted_domains (domain, created_by) VALUES ($1, $2)
+     ON CONFLICT (domain) DO NOTHING RETURNING *`,
     [domain.toLowerCase(), createdBy],
   );
-  return rows[0];
+  return rows[0] ?? null;
 }
 
 export async function deleteWhitelistedDomain(id: number): Promise<boolean> {

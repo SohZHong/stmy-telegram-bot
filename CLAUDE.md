@@ -82,6 +82,7 @@ Every callback query uses a namespaced prefix to avoid collisions. Check this li
 | `a:wd:` | Whitelisted domains section | `a:wd:list:0`, `a:wd:add`, `a:wd:v:ID`, `a:wd:rm:ID` |
 | `a:dlg:` | Delegation section | `a:dlg:ns`, `a:dlg:link`, `a:dlg:rpt`, `a:dlg:ns:ID` |
 | `dellink_` | Link safeguard | `dellink_CHATID_MSGID` |
+| `wlink_` | Link safeguard | `wlink_CHATID_MSGID` (whitelist all non-whitelisted domains from that link message; idempotent) |
 
 **Pattern:** Use `data.startsWith("prefix")` to detect, then `data.split(":")` or `data.split("_")` to extract IDs.
 
