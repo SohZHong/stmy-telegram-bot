@@ -259,6 +259,7 @@ export function setup(bot: Telegraf): void {
 
     const added: string[] = [];
     const alreadyExists: string[] = [];
+    const failed: string[] = [];
     for (const domain of entry.domains) {
       try {
         const inserted = await addWhitelistedDomain(domain, ctx.from.id);
@@ -278,7 +279,7 @@ export function setup(bot: Telegraf): void {
           `Failed to whitelist ${domain} from link alert:`,
           (err as Error).message,
         );
-        alreadyExists.push(domain);
+        failed.push(domain);
       }
     }
 
@@ -292,7 +293,9 @@ export function setup(bot: Telegraf): void {
       entry.warningMsgId = undefined;
     }
 
-    const adminName = ctx.from.first_name || `@${ctx.from.username}` || String(ctx.from.id);
+    const adminName =
+      ctx.from.first_name ||
+      (ctx.from.username ? `@${ctx.from.username}` : String(ctx.from.id));
     const lines: string[] = [];
     if (added.length > 0) {
       lines.push(`✅ Whitelisted by ${adminName}: ${added.join(", ")}`);
@@ -300,7 +303,17 @@ export function setup(bot: Telegraf): void {
     if (alreadyExists.length > 0) {
       lines.push(`ℹ️ Already whitelisted: ${alreadyExists.join(", ")}`);
     }
+    if (failed.length > 0) {
+      lines.push(`❌ Failed to whitelist (check logs): ${failed.join(", ")}`);
+    }
 
-    await ctx.editMessageText(`${originalText}\n\n${lines.join("\n")}`);
+    try {
+      await ctx.editMessageText(`${originalText}\n\n${lines.join("\n")}`);
+    } catch (err) {
+      console.error(
+        "Failed to edit DM after whitelist action:",
+        (err as Error).message,
+      );
+    }
   });
 }
