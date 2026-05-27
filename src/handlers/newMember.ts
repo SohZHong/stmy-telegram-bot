@@ -4,6 +4,8 @@ import { getMember, upsertMember } from "../models/member";
 import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { muteUser } from "../permissions";
 
+const INTRO_GATE_PREFIX = "igate_";
+
 const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}! Click below to introduce yourself.";
 
 // Track welcome message IDs so introFlow can delete them after completion
@@ -14,7 +16,6 @@ const recentlyProcessed = new Set<number>();
 
 async function handleNewMember(
   telegram: import("telegraf").Telegram,
-  botUsername: string,
   chatId: number,
   member: { id: number; is_bot: boolean; username?: string; first_name?: string },
 ): Promise<void> {
@@ -56,7 +57,6 @@ async function handleNewMember(
   }
 
   const name = member.first_name || member.username || "there";
-  const deepLink = `https://t.me/${botUsername}?start=intro`;
 
   const wm = await getRandomWelcomeMessage();
   const welcomeText = (wm?.message ?? DEFAULT_WELCOME).replace(
@@ -68,7 +68,10 @@ async function handleNewMember(
     message_thread_id: config.welcomeTopicId,
     parse_mode: "Markdown",
     ...Markup.inlineKeyboard([
-      Markup.button.url("Start Introduction", deepLink),
+      Markup.button.callback(
+        "Start Introduction",
+        `${INTRO_GATE_PREFIX}${member.id}`,
+      ),
     ]),
   });
 
@@ -92,7 +95,7 @@ export function setup(bot: Telegraf): void {
 
     for (const member of ctx.message.new_chat_members) {
       try {
-        await handleNewMember(ctx.telegram, ctx.botInfo.username, ctx.chat.id, member);
+        await handleNewMember(ctx.telegram, ctx.chat.id, member);
       } catch (err) {
         console.error(
           `Error handling new member ${member.id}:`,
@@ -100,6 +103,42 @@ export function setup(bot: Telegraf): void {
         );
       }
     }
+  });
+
+  // Intro-button gate: only the intended joiner can use the button.
+  // Others get an alert popup naming the rightful user.
+  bot.on("callback_query", async (ctx, next) => {
+    if (!("data" in ctx.callbackQuery)) return next();
+    const data = ctx.callbackQuery.data;
+    if (!data.startsWith(INTRO_GATE_PREFIX)) return next();
+
+    const targetId = parseInt(data.slice(INTRO_GATE_PREFIX.length), 10);
+    if (!Number.isFinite(targetId)) {
+      await ctx.answerCbQuery("Invalid button.");
+      return;
+    }
+
+    if (ctx.from.id !== targetId) {
+      let targetName = `user ${targetId}`;
+      try {
+        const target = await getMember(targetId);
+        if (target) {
+          targetName =
+            target.first_name ||
+            (target.username ? `@${target.username}` : targetName);
+        }
+      } catch {
+        // fall back to "user <id>"
+      }
+      await ctx.answerCbQuery(
+        `This Start Introduction button is for ${targetName}. Your own welcome message will appear when you join — please use the button there.`,
+        { show_alert: true },
+      );
+      return;
+    }
+
+    const deepLink = `https://t.me/${ctx.botInfo.username}?start=intro`;
+    await ctx.answerCbQuery(undefined, { url: deepLink });
   });
 
   // Fallback: ChatMemberUpdate for cases where new_chat_members is not fired
@@ -120,7 +159,7 @@ export function setup(bot: Telegraf): void {
     const user = ctx.chatMember.new_chat_member.user;
 
     try {
-      await handleNewMember(ctx.telegram, ctx.botInfo.username, ctx.chat.id, user);
+      await handleNewMember(ctx.telegram, ctx.chat.id, user);
     } catch (err) {
       console.error(
         `Error handling chat_member update for ${user.id}:`,
