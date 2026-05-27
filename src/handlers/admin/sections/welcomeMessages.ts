@@ -154,7 +154,12 @@ export async function handleText(
     );
     await ctx.reply(
       "Welcome message added!",
-      Markup.inlineKeyboard([[backButton("a:wm:list:0")]]),
+      Markup.inlineKeyboard([
+        [
+          Markup.button.callback("➕ Add Another", "a:wm:add"),
+          backButton("a:wm:list:0"),
+        ],
+      ]),
     );
     return true;
   }

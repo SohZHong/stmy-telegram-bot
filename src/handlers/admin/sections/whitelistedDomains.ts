@@ -157,17 +157,17 @@ export async function handleText(
   }
 
   const inserted = await addWhitelistedDomain(domain, userId);
+  const followUp = Markup.inlineKeyboard([
+    [
+      Markup.button.callback("➕ Add Another", "a:wd:add"),
+      backButton("a:wd:list:0"),
+    ],
+  ]);
   if (inserted) {
     await createAdminLog("add_whitelisted_domain", userId, null, `Domain: ${domain}`);
-    await ctx.reply(
-      `Domain "${domain}" added to whitelist.`,
-      Markup.inlineKeyboard([[backButton("a:wd:list:0")]]),
-    );
+    await ctx.reply(`Domain "${domain}" added to whitelist.`, followUp);
   } else {
-    await ctx.reply(
-      "This domain is already whitelisted.",
-      Markup.inlineKeyboard([[backButton("a:wd:list:0")]]),
-    );
+    await ctx.reply("This domain is already whitelisted.", followUp);
   }
   return true;
 }
