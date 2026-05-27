@@ -83,6 +83,7 @@ Every callback query uses a namespaced prefix to avoid collisions. Check this li
 | `a:dlg:` | Delegation section | `a:dlg:ns`, `a:dlg:link`, `a:dlg:rpt`, `a:dlg:ns:ID` |
 | `dellink_` | Link safeguard | `dellink_CHATID_MSGID` |
 | `wlink_` | Link safeguard | `wlink_CHATID_MSGID` (whitelist all non-whitelisted domains from that link message; idempotent) |
+| `igate_` | New member welcome | `igate_USERID` (gate on the Start Introduction button — only the intended joiner can use it; others see an alert) |
 
 **Pattern:** Use `data.startsWith("prefix")` to detect, then `data.split(":")` or `data.split("_")` to extract IDs.
 

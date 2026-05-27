@@ -51,7 +51,6 @@ export function setup(bot: Telegraf): void {
     await upsertMember(user.id, user.username, user.first_name, ctx.chat.id);
 
     const name = user.first_name || user.username || "there";
-    const deepLink = `https://t.me/${ctx.botInfo.username}?start=intro`;
 
     const wm = await getRandomWelcomeMessage();
     const welcomeText = (wm?.message ?? "Welcome to Superteam MY, {name}! Click below to introduce yourself.").replace(
@@ -63,7 +62,7 @@ export function setup(bot: Telegraf): void {
       message_thread_id: config.welcomeTopicId,
       parse_mode: "Markdown",
       ...Markup.inlineKeyboard([
-        Markup.button.url("Start Introduction", deepLink),
+        Markup.button.callback("Start Introduction", `igate_${user.id}`),
       ]),
     });
 
