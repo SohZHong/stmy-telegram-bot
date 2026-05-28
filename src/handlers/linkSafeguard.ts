@@ -78,6 +78,9 @@ export function setup(bot: Telegraf): void {
     );
     if (!hasUrl) return next();
 
+    // Admins are trusted — no warning, no admin DM with delete button.
+    if (await isAdminById(ctx.telegram, ctx.from.id)) return next();
+
     // Extract domains from all URLs in the message.
     // Only consider URL-typed entities — mentions, hashtags, bot_command,
     // email, phone_number, etc. are not links and must not be treated as
