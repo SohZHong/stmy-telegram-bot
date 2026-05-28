@@ -212,7 +212,10 @@ export async function handleCallback(
     await createAdminLog("approve_member", userId, telegramId);
     await ctx.editMessageText(
       `Member ${telegramId} approved and unmuted.`,
-      Markup.inlineKeyboard([[backButton("a:mem")]]),
+      Markup.inlineKeyboard([
+        [Markup.button.callback("→ Next Pending", "a:mem:pend:0")],
+        [backButton("a:mem")],
+      ]),
     );
     return true;
   }
