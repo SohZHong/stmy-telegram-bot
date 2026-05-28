@@ -78,7 +78,11 @@ export function setup(bot: Telegraf): void {
     );
     if (!hasUrl) return next();
 
-    // Extract domains from all URLs in the message
+    // Extract domains from all URLs in the message.
+    // Only consider URL-typed entities — mentions, hashtags, bot_command,
+    // email, phone_number, etc. are not links and must not be treated as
+    // malformed URLs (which would force the safety warning to fire even
+    // when every actual link in the message is whitelisted).
     const domains: string[] = [];
     let hasMalformed = false;
     for (const entity of entities) {
@@ -87,6 +91,8 @@ export function setup(bot: Telegraf): void {
         url = ctx.message.text.substring(entity.offset, entity.offset + entity.length);
       } else if (entity.type === "text_link" && entity.url) {
         url = entity.url;
+      } else {
+        continue;
       }
       try {
         if (!/^https?:\/\//i.test(url)) url = "https://" + url;
