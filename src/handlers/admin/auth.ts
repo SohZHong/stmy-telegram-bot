@@ -25,11 +25,11 @@ export async function isAdminById(
       config.mainGroupId,
       userId,
     );
-    const isAdmin =
+    const result =
       chatMember.status === "administrator" ||
       chatMember.status === "creator";
-    adminCache.set(userId, { isAdmin, expiresAt: now + ADMIN_CACHE_TTL_MS });
-    return isAdmin;
+    adminCache.set(userId, { isAdmin: result, expiresAt: now + ADMIN_CACHE_TTL_MS });
+    return result;
   } catch (err) {
     console.error(`isAdminById failed for user ${userId}:`, (err as Error).message);
     return false;
