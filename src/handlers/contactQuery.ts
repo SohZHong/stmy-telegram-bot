@@ -1,6 +1,7 @@
 import { Telegraf } from "telegraf";
 import { config } from "../config";
 import { answerContactQuery } from "../services/llm";
+import { isAdminById } from "./admin/auth";
 
 const TRIGGER_WORDS = [
   "who",
@@ -38,6 +39,9 @@ export function setup(bot: Telegraf): void {
     if (!config.openaiApiKey) return next();
 
     if (!hasTrigger(ctx.message.text)) return next();
+
+    // Admins probably know the answer or are rhetorically asking — skip the auto-reply.
+    if (await isAdminById(ctx.telegram, ctx.from.id)) return next();
 
     try {
       const answer = await answerContactQuery(ctx.message.text, config.picHandles);
