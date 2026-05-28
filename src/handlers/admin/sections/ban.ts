@@ -70,12 +70,18 @@ export async function handleCallback(
       await createAdminLog("ban_member", userId, telegramId);
       await ctx.editMessageText(
         `User ${telegramId} banned and messages wiped.`,
-        Markup.inlineKeyboard([[backButton("a:main")]]),
+        Markup.inlineKeyboard([
+          [Markup.button.callback("➕ Ban Another", "a:ban")],
+          [backButton("a:main")],
+        ]),
       );
     } catch (err) {
       await ctx.editMessageText(
         `Failed to ban: ${(err as Error).message}`,
-        Markup.inlineKeyboard([[backButton("a:main")]]),
+        Markup.inlineKeyboard([
+          [Markup.button.callback("🔁 Try Again", "a:ban")],
+          [backButton("a:main")],
+        ]),
       );
     }
     return true;
@@ -97,12 +103,18 @@ export async function handleCallback(
       await createAdminLog("kick_member", userId, telegramId);
       await ctx.editMessageText(
         `User ${telegramId} kicked.`,
-        Markup.inlineKeyboard([[backButton("a:main")]]),
+        Markup.inlineKeyboard([
+          [Markup.button.callback("➕ Kick Another", "a:ban")],
+          [backButton("a:main")],
+        ]),
       );
     } catch (err) {
       await ctx.editMessageText(
         `Failed to kick: ${(err as Error).message}`,
-        Markup.inlineKeyboard([[backButton("a:main")]]),
+        Markup.inlineKeyboard([
+          [Markup.button.callback("🔁 Try Again", "a:ban")],
+          [backButton("a:main")],
+        ]),
       );
     }
     return true;
