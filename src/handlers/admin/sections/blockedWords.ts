@@ -154,7 +154,12 @@ export async function handleText(
     );
     await ctx.reply(
       "Blocked word added!",
-      Markup.inlineKeyboard([[backButton("a:bw:list:0")]]),
+      Markup.inlineKeyboard([
+        [
+          Markup.button.callback("➕ Add Another", "a:bw:add"),
+          backButton("a:bw:list:0"),
+        ],
+      ]),
     );
     return true;
   }

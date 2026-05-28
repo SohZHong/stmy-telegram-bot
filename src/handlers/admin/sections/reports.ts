@@ -531,7 +531,12 @@ export async function handleText(
     );
     await ctx.reply(
       "Report reason added!",
-      Markup.inlineKeyboard([[backButton("a:rpt:reasons:list:0")]]),
+      Markup.inlineKeyboard([
+        [
+          Markup.button.callback("➕ Add Another", "a:rpt:reasons:add"),
+          backButton("a:rpt:reasons:list:0"),
+        ],
+      ]),
     );
     return true;
   }
