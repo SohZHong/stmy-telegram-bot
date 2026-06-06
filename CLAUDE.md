@@ -59,7 +59,8 @@ setupAdminMenu      — /start admin deep link (MUST precede introFlow)
 setupReportFlow     — /start report deep link (MUST precede introFlow)
 setupIntroFlow      — /start intro deep link (catches remaining /start payloads)
 setupGroupCommands  — /setup, /testjoin
-setupNewMember      — Join events (posts welcome button)
+setupJoinRequest    — chat_join_request (DM welcome via user_chat_id, approve, mute) — MUST precede setupNewMember
+setupNewMember      — Join events fallback (posts public welcome only when join-request path didn't fire)
 setupMessageGuard   — Blocks non-introduced users
 setupLinkSafeguard  — Link warnings + admin delete
 setupMessageTracker — Passive message buffering (no blocking)
@@ -175,7 +176,7 @@ npm run migrate                             # Runs pending migrations
 ## Gotchas
 
 - **Topic filters:** `messageGuard` skips intro + welcome topics. `linkSafeguard` skips admin topic (if configured). New message handlers in the main group should consider which topics they apply to.
-- **No circular imports:** Handlers import from models/services/shared, never from each other (except four allowed cross-handler imports: `introFlow` imports `welcomeMessageIds` from `newMember` and `nagMessageIds` from `messageGuard`; `groupCommands` imports `welcomeMessageIds` from `newMember` for `/testjoin`; `insights` imports `messageBuffer` from `messageTracker` for chat summaries/activity).
+- **No circular imports:** Handlers import from models/services/shared, never from each other (except five allowed cross-handler imports: `introFlow` imports `welcomeMessageIds` from `newMember` and `nagMessageIds` from `messageGuard`; `groupCommands` imports `welcomeMessageIds` from `newMember` for `/testjoin`; `insights` imports `messageBuffer` from `messageTracker` for chat summaries/activity; `joinRequest` imports `welcomeMessageIds`, `markDmedViaJoinRequest`, and `buildIntroWelcome` from `newMember`).
 - **Allowed updates:** `bot.launch()` explicitly sets `allowedUpdates` to include `chat_member` for dual new member detection. Adding new update types requires updating this list in `index.ts`.
 - **Startup posts:** `ensureReportPost` is wrapped in try-catch and skipped when `mainGroupId` is 0. New startup posts should follow this pattern.
 - **Service messages:** `messageGuard` explicitly skips `new_chat_members` / `left_chat_member` to avoid processing join/leave events as regular messages. New group message handlers should do the same if they delete or act on messages.

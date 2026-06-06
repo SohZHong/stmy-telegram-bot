@@ -9,6 +9,7 @@ import { setup as setupIntroFlow } from "./handlers/introFlow";
 import { setup as setupGroupCommands } from "./handlers/groupCommands";
 import { setup as setupMessageGuard } from "./handlers/messageGuard";
 import { setup as setupNewMember } from "./handlers/newMember";
+import { setup as setupJoinRequest } from "./handlers/joinRequest";
 import { setup as setupLinkSafeguard } from "./handlers/linkSafeguard";
 import { setup as setupMessageTracker } from "./handlers/messageTracker";
 import { setup as setupContactQuery } from "./handlers/contactQuery";
@@ -25,7 +26,9 @@ setupReportFlow(bot);
 setupIntroFlow(bot);
 // /setup command to discover chat/topic IDs, /testjoin for testing
 setupGroupCommands(bot);
-// Handles join events (posts welcome button)
+// Approve-required invite-link joins: DM welcome, approve, mute (before setupNewMember)
+setupJoinRequest(bot);
+// Handles join events (posts welcome button) — fallback when join request path didn't run
 setupNewMember(bot);
 // Blocks non-introduced users in group
 setupMessageGuard(bot);
@@ -51,7 +54,13 @@ async function start(): Promise<void> {
   }
 
   bot.launch({
-    allowedUpdates: ["message", "callback_query", "chat_member", "my_chat_member"],
+    allowedUpdates: [
+      "message",
+      "callback_query",
+      "chat_member",
+      "my_chat_member",
+      "chat_join_request",
+    ],
   });
   console.log("Bot started");
 }
