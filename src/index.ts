@@ -39,9 +39,43 @@ setupMessageTracker(bot);
 // Auto-reply to "who to contact" questions
 setupContactQuery(bot);
 
+async function registerBotCommands(): Promise<void> {
+  // Commands shown in the "/" popup over the message bar.
+  // Private chats: user-facing commands only.
+  await bot.telegram.setMyCommands(
+    [
+      { command: "start", description: "Open the bot" },
+      { command: "restart", description: "Restart your introduction" },
+    ],
+    { scope: { type: "all_private_chats" } },
+  );
+
+  // Group chat admins: moderation/operations commands.
+  await bot.telegram.setMyCommands(
+    [
+      { command: "setup", description: "Show chat/topic IDs" },
+      { command: "testjoin", description: "Simulate a join (test)" },
+      { command: "help", description: "Admin command reference" },
+      { command: "announce", description: "Broadcast to all admins" },
+      { command: "postreport", description: "Post the pinned report button" },
+      { command: "posthelp", description: "Post the help message" },
+      { command: "setintroguide", description: "Update the intro guide" },
+      { command: "viewintroguide", description: "View the intro guide" },
+      { command: "logs", description: "View admin action logs" },
+    ],
+    { scope: { type: "all_chat_administrators" } },
+  );
+}
+
 async function start(): Promise<void> {
   await runMigrations(config.databaseUrl);
   console.log("Migrations complete");
+
+  try {
+    await registerBotCommands();
+  } catch (err) {
+    console.warn("Failed to register bot command menu:", (err as Error).message);
+  }
 
   if (config.mainGroupId) {
     try {
