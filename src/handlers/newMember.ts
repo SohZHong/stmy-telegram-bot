@@ -8,11 +8,46 @@ const INTRO_GATE_PREFIX = "igate_";
 
 const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}! Click below to introduce yourself.";
 
+// Builds the welcome text + Start Introduction button. Shared between the
+// public-welcome path (this file) and the join-request DM path (joinRequest.ts).
+export async function buildIntroWelcome(user: {
+  id: number;
+  first_name?: string;
+  username?: string;
+}): Promise<{ text: string; keyboard: ReturnType<typeof Markup.inlineKeyboard> }> {
+  const name = user.first_name || user.username || "there";
+  const wm = await getRandomWelcomeMessage();
+  const text = (wm?.message ?? DEFAULT_WELCOME).replace(
+    /\{name\}/g,
+    `[${name}](tg://user?id=${user.id})`,
+  );
+  const keyboard = Markup.inlineKeyboard([
+    Markup.button.callback(
+      "Start Introduction",
+      `${INTRO_GATE_PREFIX}${user.id}`,
+    ),
+  ]);
+  return { text, keyboard };
+}
+
 // Track welcome message IDs so introFlow can delete them after completion
 export const welcomeMessageIds = new Map<number, { chatId: number; messageId: number }>();
 
 // Deduplication: prevent both new_chat_members and chat_member from processing the same join
 const recentlyProcessed = new Set<number>();
+
+// Set by joinRequest.ts when a joiner has already been DMed via user_chat_id —
+// suppresses the public welcome-topic post for that user.
+const dmedViaJoinRequest = new Set<number>();
+const DMED_VIA_JOIN_REQUEST_TTL_MS = 60_000;
+
+export function markDmedViaJoinRequest(userId: number): void {
+  dmedViaJoinRequest.add(userId);
+  setTimeout(
+    () => dmedViaJoinRequest.delete(userId),
+    DMED_VIA_JOIN_REQUEST_TTL_MS,
+  );
+}
 
 async function handleNewMember(
   telegram: import("telegraf").Telegram,
@@ -20,6 +55,8 @@ async function handleNewMember(
   member: { id: number; is_bot: boolean; username?: string; first_name?: string },
 ): Promise<void> {
   if (member.is_bot) return;
+  // Already handled via chat_join_request: DM was sent, mute applied, upsert done.
+  if (dmedViaJoinRequest.has(member.id)) return;
   if (recentlyProcessed.has(member.id)) return;
   recentlyProcessed.add(member.id);
   setTimeout(() => recentlyProcessed.delete(member.id), 10_000);
@@ -56,23 +93,12 @@ async function handleNewMember(
     // May lack permission to restrict members
   }
 
-  const name = member.first_name || member.username || "there";
+  const { text, keyboard } = await buildIntroWelcome(member);
 
-  const wm = await getRandomWelcomeMessage();
-  const welcomeText = (wm?.message ?? DEFAULT_WELCOME).replace(
-    /\{name\}/g,
-    `[${name}](tg://user?id=${member.id})`,
-  );
-
-  const sent = await telegram.sendMessage(config.mainGroupId, welcomeText, {
+  const sent = await telegram.sendMessage(config.mainGroupId, text, {
     message_thread_id: config.welcomeTopicId,
     parse_mode: "Markdown",
-    ...Markup.inlineKeyboard([
-      Markup.button.callback(
-        "Start Introduction",
-        `${INTRO_GATE_PREFIX}${member.id}`,
-      ),
-    ]),
+    ...keyboard,
   });
 
   // Store so introFlow can delete after completion

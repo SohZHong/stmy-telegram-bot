@@ -161,6 +161,24 @@ async function finalizeIntro(
   await deleteNagMessages(telegram, userId);
 }
 
+async function promptIntro(
+  ctx: import("telegraf").Context,
+  member: { first_name: string | null },
+  fallbackUsername?: string,
+): Promise<void> {
+  const wm = await getRandomWelcomeMessage();
+  const introGuide = await getSetting("intro_guide");
+  const name = member.first_name || fallbackUsername || "there";
+
+  const text =
+    (wm?.message ?? DEFAULT_WELCOME).replace(/\{name\}/g, name) +
+    "\n\n" +
+    (introGuide ?? "") +
+    "\n\nPlease type your introduction below:";
+
+  await ctx.reply(text, { parse_mode: "Markdown" });
+}
+
 export function setup(bot: Telegraf): void {
   // Handle /start intro deep link in private chats
   bot.start(async (ctx, next) => {
@@ -189,22 +207,46 @@ export function setup(bot: Telegraf): void {
         return;
       }
 
-      const wm = await getRandomWelcomeMessage();
-      const introGuide = await getSetting("intro_guide");
-      const name = member.first_name || ctx.from.username || "there";
-
-      const text =
-        (wm?.message ?? DEFAULT_WELCOME).replace(/\{name\}/g, name) +
-        "\n\n" +
-        (introGuide ?? "") +
-        "\n\nPlease type your introduction below:";
-
-      await ctx.reply(text, { parse_mode: "Markdown" });
-
+      await promptIntro(ctx, member, ctx.from.username);
       introState.set(userId, { step: "AWAITING_INTRO" });
     } catch (err) {
       console.error(
         `Error in intro flow start for user ${userId}:`,
+        (err as Error).message,
+      );
+    }
+  });
+
+  // /restart — reset intro state and re-prompt. Useful when the user hit a
+  // validation rejection or just wants to start over.
+  bot.command("restart", async (ctx, next) => {
+    if (ctx.chat.type !== "private") return next();
+
+    const userId = ctx.from.id;
+
+    try {
+      const member = await getMember(userId);
+
+      if (!member) {
+        await ctx.reply(
+          "I don't have you in my records. Please join the group first!",
+        );
+        return;
+      }
+
+      if (member.intro_completed) {
+        await ctx.reply(
+          "You've already completed your introduction — no need to restart.",
+        );
+        return;
+      }
+
+      introState.delete(userId);
+      await promptIntro(ctx, member, ctx.from.username);
+      introState.set(userId, { step: "AWAITING_INTRO" });
+    } catch (err) {
+      console.error(
+        `Error in /restart for user ${userId}:`,
         (err as Error).message,
       );
     }

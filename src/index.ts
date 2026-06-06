@@ -9,6 +9,7 @@ import { setup as setupIntroFlow } from "./handlers/introFlow";
 import { setup as setupGroupCommands } from "./handlers/groupCommands";
 import { setup as setupMessageGuard } from "./handlers/messageGuard";
 import { setup as setupNewMember } from "./handlers/newMember";
+import { setup as setupJoinRequest } from "./handlers/joinRequest";
 import { setup as setupLinkSafeguard } from "./handlers/linkSafeguard";
 import { setup as setupMessageTracker } from "./handlers/messageTracker";
 import { setup as setupContactQuery } from "./handlers/contactQuery";
@@ -25,7 +26,9 @@ setupReportFlow(bot);
 setupIntroFlow(bot);
 // /setup command to discover chat/topic IDs, /testjoin for testing
 setupGroupCommands(bot);
-// Handles join events (posts welcome button)
+// Approve-required invite-link joins: DM welcome, approve, mute (before setupNewMember)
+setupJoinRequest(bot);
+// Handles join events (posts welcome button) — fallback when join request path didn't run
 setupNewMember(bot);
 // Blocks non-introduced users in group
 setupMessageGuard(bot);
@@ -36,9 +39,43 @@ setupMessageTracker(bot);
 // Auto-reply to "who to contact" questions
 setupContactQuery(bot);
 
+async function registerBotCommands(): Promise<void> {
+  // Commands shown in the "/" popup over the message bar.
+  // Private chats: user-facing commands only.
+  await bot.telegram.setMyCommands(
+    [
+      { command: "start", description: "Open the bot" },
+      { command: "restart", description: "Restart your introduction" },
+    ],
+    { scope: { type: "all_private_chats" } },
+  );
+
+  // Group chat admins: moderation/operations commands.
+  await bot.telegram.setMyCommands(
+    [
+      { command: "setup", description: "Show chat/topic IDs" },
+      { command: "testjoin", description: "Simulate a join (test)" },
+      { command: "help", description: "Admin command reference" },
+      { command: "announce", description: "Broadcast to all admins" },
+      { command: "postreport", description: "Post the pinned report button" },
+      { command: "posthelp", description: "Post the help message" },
+      { command: "setintroguide", description: "Update the intro guide" },
+      { command: "viewintroguide", description: "View the intro guide" },
+      { command: "logs", description: "View admin action logs" },
+    ],
+    { scope: { type: "all_chat_administrators" } },
+  );
+}
+
 async function start(): Promise<void> {
   await runMigrations(config.databaseUrl);
   console.log("Migrations complete");
+
+  try {
+    await registerBotCommands();
+  } catch (err) {
+    console.warn("Failed to register bot command menu:", (err as Error).message);
+  }
 
   if (config.mainGroupId) {
     try {
@@ -51,7 +88,13 @@ async function start(): Promise<void> {
   }
 
   bot.launch({
-    allowedUpdates: ["message", "callback_query", "chat_member", "my_chat_member"],
+    allowedUpdates: [
+      "message",
+      "callback_query",
+      "chat_member",
+      "my_chat_member",
+      "chat_join_request",
+    ],
   });
   console.log("Bot started");
 }
