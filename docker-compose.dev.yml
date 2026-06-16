@@ -1,0 +1,33 @@
+# Local TEST database only — NOT used in production.
+#
+# The production deploy (.github/workflows/deploy.yml) runs `docker compose up`,
+# which only reads docker-compose.yml. This file is opt-in via the `-f` flag,
+# so it never affects the EC2 deploy.
+#
+# Unlike the production `db` service, this one publishes port 5432 to your host
+# so that `npm run dev` (running on your Mac, outside Docker) can connect.
+#
+#   Start:  npm run db:dev          (or: docker compose -f docker-compose.dev.yml up -d)
+#   Stop:   npm run db:dev:down
+#   Wipe:   docker compose -f docker-compose.dev.yml down -v   (destroys test data)
+#
+# Matches DATABASE_URL=postgresql://bot:bot@localhost:5432/stmy_bot
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bot
+      POSTGRES_PASSWORD: bot
+      POSTGRES_DB: stmy_bot
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot -d stmy_bot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata_dev:
