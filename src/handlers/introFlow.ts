@@ -2,13 +2,12 @@ import { Markup, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 import { config } from "../config";
 import { getMember, markIntroCompleted, flagNsLongtimer, setDiscordId } from "../models/member";
-import { getSetting } from "../models/settings";
+import { getSetting, setSetting } from "../models/settings";
 import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { postToClosedTopic, unmuteUser } from "../permissions";
 import { getAllBlockedWords } from "../models/blockedWord";
 import { escapeHtml } from "../utils/format";
 import { validateIntro, generateIntro } from "../services/llm";
-import { welcomeMessageIds } from "./newMember";
 import { nagMessageIds } from "./messageGuard";
 import { isAdminById } from "./admin/auth";
 
@@ -20,21 +19,6 @@ type IntroState =
   | { step: "AWAITING_DISCORD_ID"; introText: string };
 
 const introState = new Map<number, IntroState>();
-
-async function deleteWelcomeMessage(
-  telegram: import("telegraf").Telegram,
-  userId: number,
-): Promise<void> {
-  const welcome = welcomeMessageIds.get(userId);
-  if (welcome) {
-    try {
-      await telegram.deleteMessage(welcome.chatId, welcome.messageId);
-    } catch {
-      // message may already be deleted
-    }
-    welcomeMessageIds.delete(userId);
-  }
-}
 
 async function deleteNagMessages(
   telegram: import("telegraf").Telegram,
@@ -153,9 +137,6 @@ async function finalizeIntro(
   } catch {
     // Owner/admin can't be unmuted
   }
-
-  // Delete welcome message from Welcome topic
-  await deleteWelcomeMessage(telegram, userId);
 
   // Delete nag DM reminders
   await deleteNagMessages(telegram, userId);
@@ -435,4 +416,64 @@ export function setup(bot: Telegraf): void {
 
     await ctx.reply("Please send your introduction as a text message.");
   });
+}
+
+// Posts (and re-pins) a single persistent "Introduce yourself" button in the
+// group. Mirrors ensureReportPost: idempotent across restarts via the
+// intro_post_message_id setting. New members tap this instead of receiving a
+// per-join welcome message, so the group never fills with intro prompts.
+export async function ensureIntroPost(
+  telegram: import("telegraf").Telegram,
+): Promise<void> {
+  const existingId = await getSetting("intro_post_message_id");
+  if (existingId) {
+    try {
+      await telegram.pinChatMessage(
+        config.mainGroupId,
+        parseInt(existingId, 10),
+        { disable_notification: true },
+      );
+      return; // existing post still valid
+    } catch {
+      // post deleted or invalid, will re-post
+    }
+  }
+
+  const botInfo = await telegram.getMe();
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.url(
+        "Introduce yourself",
+        `https://t.me/${botInfo.username}?start=intro`,
+      ),
+    ],
+  ]);
+  const text =
+    "👋 New here? Tap below to introduce yourself and unlock the group.\n\nNew members stay muted until they introduce themselves.";
+
+  let sent;
+  try {
+    sent = await telegram.sendMessage(config.mainGroupId, text, {
+      message_thread_id: 1,
+      ...keyboard,
+    });
+  } catch {
+    try {
+      sent = await telegram.sendMessage(config.mainGroupId, text, keyboard);
+    } catch (err) {
+      console.error("Failed to post intro button:", (err as Error).message);
+      return;
+    }
+  }
+
+  try {
+    await telegram.pinChatMessage(config.mainGroupId, sent.message_id, {
+      disable_notification: true,
+    });
+  } catch {
+    // pin failed, not critical
+  }
+
+  await setSetting("intro_post_message_id", String(sent.message_id), 0);
+  console.log("Intro button posted and pinned");
 }

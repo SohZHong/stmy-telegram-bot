@@ -5,7 +5,7 @@ import { runMigrations } from "./db/migrate";
 import { handleStartupError } from "./errors";
 import { setupCommands as setupAdmin, setupMenu as setupAdminMenu } from "./handlers/admin";
 import { setup as setupReportFlow, ensureReportPost } from "./handlers/reportFlow";
-import { setup as setupIntroFlow } from "./handlers/introFlow";
+import { setup as setupIntroFlow, ensureIntroPost } from "./handlers/introFlow";
 import { setup as setupGroupCommands } from "./handlers/groupCommands";
 import { setup as setupMessageGuard } from "./handlers/messageGuard";
 import { setup as setupNewMember } from "./handlers/newMember";
@@ -25,7 +25,7 @@ setupReportFlow(bot);
 setupIntroFlow(bot);
 // /setup command to discover chat/topic IDs, /testjoin for testing
 setupGroupCommands(bot);
-// Handles join events (posts welcome button)
+// Handles join events (mutes new members)
 setupNewMember(bot);
 // Blocks non-introduced users in group
 setupMessageGuard(bot);
@@ -45,6 +45,11 @@ async function start(): Promise<void> {
       await ensureReportPost(bot.telegram);
     } catch (err) {
       console.warn("Could not post report button (check MAIN_GROUP_ID):", (err as Error).message);
+    }
+    try {
+      await ensureIntroPost(bot.telegram);
+    } catch (err) {
+      console.warn("Could not post intro button (check MAIN_GROUP_ID):", (err as Error).message);
     }
   } else {
     console.warn("MAIN_GROUP_ID is 0 — skipping startup posts. Use /setup in your group to get the ID.");
