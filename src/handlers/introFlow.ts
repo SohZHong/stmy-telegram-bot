@@ -451,19 +451,19 @@ export async function ensureIntroPost(
   const text =
     "👋 New here? Tap below to introduce yourself and unlock the group.\n\nNew members stay muted until they introduce themselves.";
 
+  // Post into the Intros topic (closed for members) so the pinned button sits
+  // at the top of that topic and every posted intro lands right below it.
   let sent;
   try {
-    sent = await telegram.sendMessage(config.mainGroupId, text, {
-      message_thread_id: 1,
-      ...keyboard,
-    });
-  } catch {
-    try {
-      sent = await telegram.sendMessage(config.mainGroupId, text, keyboard);
-    } catch (err) {
-      console.error("Failed to post intro button:", (err as Error).message);
-      return;
-    }
+    sent = await postToClosedTopic(telegram, config.introTopicId, () =>
+      telegram.sendMessage(config.mainGroupId, text, {
+        message_thread_id: config.introTopicId,
+        ...keyboard,
+      }),
+    );
+  } catch (err) {
+    console.error("Failed to post intro button:", (err as Error).message);
+    return;
   }
 
   try {
