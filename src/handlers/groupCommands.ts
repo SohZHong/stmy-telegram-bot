@@ -1,8 +1,6 @@
-import { Markup, Telegraf } from "telegraf";
+import { Telegraf } from "telegraf";
 import { config } from "../config";
 import { getMember, upsertMember } from "../models/member";
-import { getRandomWelcomeMessage } from "../models/welcomeMessage";
-import { welcomeMessageIds } from "./newMember";
 import { isAdminById } from "./admin/auth";
 
 export function setup(bot: Telegraf): void {
@@ -26,7 +24,7 @@ export function setup(bot: Telegraf): void {
     });
   });
 
-  // Simulate new member join for testing (admin only)
+  // Simulate new member registration for testing (admin only)
   bot.command("testjoin", async (ctx) => {
     if (ctx.chat.type === "private") {
       await ctx.reply("Run this command in the group.");
@@ -50,27 +48,8 @@ export function setup(bot: Telegraf): void {
 
     await upsertMember(user.id, user.username, user.first_name, ctx.chat.id);
 
-    const name = user.first_name || user.username || "there";
-
-    const wm = await getRandomWelcomeMessage();
-    const welcomeText = (wm?.message ?? "Welcome to Superteam MY, {name}! Click below to introduce yourself.").replace(
-      /\{name\}/g,
-      `[${name}](tg://user?id=${user.id})`,
+    await ctx.reply(
+      'Test join registered — you are now an un-introduced member. Tap the pinned "Introduce yourself" button (or DM me /start intro) to test the intro flow.',
     );
-
-    const sent = await ctx.telegram.sendMessage(config.mainGroupId, welcomeText, {
-      message_thread_id: config.welcomeTopicId,
-      parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([
-        Markup.button.callback("Start Introduction", `igate_${user.id}`),
-      ]),
-    });
-
-    welcomeMessageIds.set(user.id, {
-      chatId: config.mainGroupId,
-      messageId: sent.message_id,
-    });
-
-    await ctx.reply("Test join triggered! Check the Welcome topic.");
   });
 }

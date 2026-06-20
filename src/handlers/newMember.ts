@@ -1,15 +1,7 @@
-import { Markup, Telegraf } from "telegraf";
+import { Telegraf } from "telegraf";
 import { config } from "../config";
 import { getMember, upsertMember } from "../models/member";
-import { getRandomWelcomeMessage } from "../models/welcomeMessage";
 import { muteUser } from "../permissions";
-
-const INTRO_GATE_PREFIX = "igate_";
-
-const DEFAULT_WELCOME = "Welcome to Superteam MY, {name}! Click below to introduce yourself.";
-
-// Track welcome message IDs so introFlow can delete them after completion
-export const welcomeMessageIds = new Map<number, { chatId: number; messageId: number }>();
 
 // Deduplication: prevent both new_chat_members and chat_member from processing the same join
 const recentlyProcessed = new Set<number>();
@@ -49,37 +41,15 @@ async function handleNewMember(
     chatId,
   );
 
-  // Mute the new member until they complete their intro
+  // Mute the new member until they complete their intro. No per-join message is
+  // posted — they introduce via the single pinned "Introduce yourself" button
+  // (see ensureIntroPost in introFlow.ts). Muting blocks sending messages but
+  // NOT tapping inline buttons, so a muted member can still start the flow.
   try {
     await muteUser(telegram, member.id);
   } catch {
     // May lack permission to restrict members
   }
-
-  const name = member.first_name || member.username || "there";
-
-  const wm = await getRandomWelcomeMessage();
-  const welcomeText = (wm?.message ?? DEFAULT_WELCOME).replace(
-    /\{name\}/g,
-    `[${name}](tg://user?id=${member.id})`,
-  );
-
-  const sent = await telegram.sendMessage(config.mainGroupId, welcomeText, {
-    message_thread_id: config.welcomeTopicId,
-    parse_mode: "Markdown",
-    ...Markup.inlineKeyboard([
-      Markup.button.callback(
-        "Start Introduction",
-        `${INTRO_GATE_PREFIX}${member.id}`,
-      ),
-    ]),
-  });
-
-  // Store so introFlow can delete after completion
-  welcomeMessageIds.set(member.id, {
-    chatId: config.mainGroupId,
-    messageId: sent.message_id,
-  });
 }
 
 export function setup(bot: Telegraf): void {
@@ -103,42 +73,6 @@ export function setup(bot: Telegraf): void {
         );
       }
     }
-  });
-
-  // Intro-button gate: only the intended joiner can use the button.
-  // Others get an alert popup naming the rightful user.
-  bot.on("callback_query", async (ctx, next) => {
-    if (!("data" in ctx.callbackQuery)) return next();
-    const data = ctx.callbackQuery.data;
-    if (!data.startsWith(INTRO_GATE_PREFIX)) return next();
-
-    const targetId = parseInt(data.slice(INTRO_GATE_PREFIX.length), 10);
-    if (!Number.isFinite(targetId)) {
-      await ctx.answerCbQuery("Invalid button.");
-      return;
-    }
-
-    if (ctx.from.id !== targetId) {
-      let targetName = `user ${targetId}`;
-      try {
-        const target = await getMember(targetId);
-        if (target) {
-          targetName =
-            target.first_name ||
-            (target.username ? `@${target.username}` : targetName);
-        }
-      } catch {
-        // fall back to "user <id>"
-      }
-      await ctx.answerCbQuery(
-        `This Start Introduction button is for ${targetName}. Your own welcome message will appear when you join — please use the button there.`,
-        { show_alert: true },
-      );
-      return;
-    }
-
-    const deepLink = `https://t.me/${ctx.botInfo.username}?start=intro`;
-    await ctx.answerCbQuery(undefined, { url: deepLink });
   });
 
   // Fallback: ChatMemberUpdate for cases where new_chat_members is not fired

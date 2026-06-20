@@ -83,7 +83,6 @@ Every callback query uses a namespaced prefix to avoid collisions. Check this li
 | `a:dlg:` | Delegation section | `a:dlg:ns`, `a:dlg:link`, `a:dlg:rpt`, `a:dlg:ns:ID` |
 | `dellink_` | Link safeguard | `dellink_CHATID_MSGID` |
 | `wlink_` | Link safeguard | `wlink_CHATID_MSGID` (whitelist all non-whitelisted domains from that link message; idempotent) |
-| `igate_` | New member welcome | `igate_USERID` (gate on the Start Introduction button — only the intended joiner can use it; others see an alert) |
 
 **Pattern:** Use `data.startsWith("prefix")` to detect, then `data.split(":")` or `data.split("_")` to extract IDs.
 
@@ -123,15 +122,15 @@ States are user-scoped — multiple admins can use the menu simultaneously.
 
 ```
 Member joins group
-  → newMember.ts: delete service message, muteUser(), post welcome button, store welcome msg ID
+  → newMember.ts: delete service message, muteUser() (no per-join message posted)
 
-Member clicks "Start Introduction" → DM with /start intro
+Persistent pinned "Introduce yourself" button (ensureIntroPost, posted on startup)
+  → Member taps it → DM with /start intro (URL deep link t.me/<bot>?start=intro)
   → introFlow.ts: collect intro text, validate (blocked words, length, LLM if configured)
   → Ask NS long-termer question (yes/no buttons)
   → If claimed NS: prompt for Discord ID
   → finalizeIntro(): AI-rewrite intro (if OPENAI_API_KEY set), post to intro topic (via postToClosedTopic), markIntroCompleted(), unmuteUser()
   → If claimed NS: save Discord ID, notify admins (or ns_designated_admin) with Discord ID + approve/reject buttons (nsv:yes/nsv:no)
-  → Delete welcome message from Welcome topic
   → Delete nag DM reminders
 
 Fallback: chat_member event (ChatMemberUpdate)
@@ -175,9 +174,9 @@ npm run migrate                             # Runs pending migrations
 ## Gotchas
 
 - **Topic filters:** `messageGuard` skips intro + welcome topics. `linkSafeguard` skips admin topic (if configured). New message handlers in the main group should consider which topics they apply to.
-- **No circular imports:** Handlers import from models/services/shared, never from each other (except four allowed cross-handler imports: `introFlow` imports `welcomeMessageIds` from `newMember` and `nagMessageIds` from `messageGuard`; `groupCommands` imports `welcomeMessageIds` from `newMember` for `/testjoin`; `insights` imports `messageBuffer` from `messageTracker` for chat summaries/activity).
+- **No circular imports:** Handlers import from models/services/shared, never from each other (except two allowed cross-handler imports: `introFlow` imports `nagMessageIds` from `messageGuard`; `insights` imports `messageBuffer` from `messageTracker` for chat summaries/activity).
 - **Allowed updates:** `bot.launch()` explicitly sets `allowedUpdates` to include `chat_member` for dual new member detection. Adding new update types requires updating this list in `index.ts`.
-- **Startup posts:** `ensureReportPost` is wrapped in try-catch and skipped when `mainGroupId` is 0. New startup posts should follow this pattern.
+- **Startup posts:** `ensureReportPost` and `ensureIntroPost` are wrapped in try-catch and skipped when `mainGroupId` is 0. Each posts a single pinned button (Report a Member / Introduce yourself) and re-pins on restart via a `*_post_message_id` setting. New startup posts should follow this pattern.
 - **Service messages:** `messageGuard` explicitly skips `new_chat_members` / `left_chat_member` to avoid processing join/leave events as regular messages. New group message handlers should do the same if they delete or act on messages.
 
 ## Delegation Pattern

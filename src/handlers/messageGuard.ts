@@ -80,7 +80,7 @@ export function setup(bot: Telegraf): void {
         try {
           const sent = await ctx.telegram.sendMessage(
             userId,
-            'Your message was removed because you haven\'t introduced yourself yet. Please go to the Welcome topic and click the "Start Introduction" button to introduce yourself!',
+            'Your message was removed because you haven\'t introduced yourself yet. Send me /start intro here, or tap the pinned "Introduce yourself" button in the group, to introduce yourself!',
           );
           const entry = nagMessageIds.get(userId) ?? { ids: [], firstAt: Date.now() };
           entry.ids.push(sent.message_id);
