@@ -57,3 +57,22 @@ export async function postToClosedTopic<T>(
     }
   }
 }
+
+// Posts into a forum topic without disturbing its open/closed state when
+// possible. The intro topic is kept closed so only the bot/admins post there,
+// and an admin bot can post directly into a closed topic — so we try a direct
+// send first. This avoids the "reopened/closed the topic" service-message spam
+// that the reopen→post→close dance generates. Only if the direct send fails
+// (e.g. the bot can't post while the topic is closed) do we fall back to
+// postToClosedTopic.
+export async function postToForumTopic<T>(
+  telegram: Telegram,
+  topicId: number,
+  sendFn: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await sendFn();
+  } catch {
+    return await postToClosedTopic(telegram, topicId, sendFn);
+  }
+}

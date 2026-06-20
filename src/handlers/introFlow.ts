@@ -4,7 +4,7 @@ import { config } from "../config";
 import { getMember, markIntroCompleted, flagNsLongtimer, setDiscordId } from "../models/member";
 import { getSetting, setSetting } from "../models/settings";
 import { getRandomWelcomeMessage } from "../models/welcomeMessage";
-import { postToClosedTopic, unmuteUser } from "../permissions";
+import { postToForumTopic, unmuteUser } from "../permissions";
 import { getAllBlockedWords } from "../models/blockedWord";
 import { escapeHtml } from "../utils/format";
 import { validateIntro, generateIntro } from "../services/llm";
@@ -113,7 +113,7 @@ async function finalizeIntro(
   const usernameTag = username ? ` @${username}` : "";
   const postText = `<b>Introduction from</b>${usernameTag}\n\n${escapedIntro}`;
 
-  await postToClosedTopic(telegram, config.introTopicId, () =>
+  await postToForumTopic(telegram, config.introTopicId, () =>
     telegram.sendMessage(config.mainGroupId, postText, {
       message_thread_id: config.introTopicId,
       parse_mode: "HTML",
@@ -455,7 +455,7 @@ export async function ensureIntroPost(
   // at the top of that topic and every posted intro lands right below it.
   let sent;
   try {
-    sent = await postToClosedTopic(telegram, config.introTopicId, () =>
+    sent = await postToForumTopic(telegram, config.introTopicId, () =>
       telegram.sendMessage(config.mainGroupId, text, {
         message_thread_id: config.introTopicId,
         ...keyboard,
